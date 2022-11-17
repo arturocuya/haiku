@@ -33,5 +33,9 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "brighterscript": "^0.60.6",
+    "vscode-languageserver": "^8.0.2"
   }
 }

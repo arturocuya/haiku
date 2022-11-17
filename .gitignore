@@ -2,3 +2,6 @@
 node_modules/
 .nyc_output/
 .env
+playground.ts
+playground.js
+dist
