@@ -4,13 +4,13 @@ export enum TokenKind {
     // `<`
     Less = 'Less',
     // '>'
-    Greater = 'Great',
+    Greater = 'Greater',
     // `</`
     LessSlash = 'LessSlash',
     // The name of a tag or SG node.
     NodeName = 'NodeName',
     // />
-    SlashGreater = 'SlashGreat',
+    SlashGreater = 'SlashGreater',
     // Source code within <script> or in any data binding {expression}
     BrsCode = 'BrsCode',
     // {
@@ -19,7 +19,8 @@ export enum TokenKind {
     CurlyClose = 'CurlyClose',
     StringLiteral = 'StringLiteral',
     Equal = 'Equal',
-    NodeAttribute = 'NodeAttribute'
+    NodeAttribute = 'NodeAttribute',
+    Whitespace = 'Whitespace'
 }
 
 

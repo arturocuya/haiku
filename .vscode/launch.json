@@ -1,0 +1,11 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+        {
+            "command": "npm run test:nocover -- --timeout 0",
+            "name": "Test (No coverage)",
+            "request": "launch",
+            "type": "node-terminal"
+        }
+	]
+}

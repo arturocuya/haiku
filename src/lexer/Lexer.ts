@@ -123,8 +123,23 @@ export class Lexer {
         let tokenKind: TokenKind | undefined;
         let tokenFunction: (lexer?: Lexer) => void | undefined;
 
+        if (isAlpha(c)) {
+            if (this.checkPreviousToken(TokenKind.Less) || this.checkPreviousToken(TokenKind.LessSlash)) {
+                this.nodeName();
+            } else if (
+                this.checkPreviousToken(TokenKind.NodeName) ||
+                // Check if the last 3 tokens constitute an assigned node attribute
+                (
+                    this.tokens[this.tokens.length - 3]?.kind === TokenKind.NodeAttribute &&
+                    this.tokens[this.tokens.length - 2]?.kind === TokenKind.Equal &&
+                    (this.checkPreviousToken(TokenKind.StringLiteral))
+                ) ||
+                this.checkPreviousToken(TokenKind.NodeAttribute)
+            ) {
+                this.nodeAttribute();
+            }
         // eslint-disable-next-line no-cond-assign
-        if (tokenKind = Lexer.tokenKindMap[c as keyof typeof Lexer.tokenKindMap]) {
+        } else if (tokenKind = Lexer.tokenKindMap[c as keyof typeof Lexer.tokenKindMap]) {
             this.addToken(tokenKind);
         // eslint-disable-next-line no-cond-assign
         } else if (tokenFunction = Lexer.tokenFunctionMap[c as keyof typeof Lexer.tokenFunctionMap]) {
@@ -159,7 +174,9 @@ export class Lexer {
     */
     private static tokenKindMap = {
         '{': TokenKind.CurlyOpen,
-        '}': TokenKind.CurlyClose
+        '}': TokenKind.CurlyClose,
+        '>': TokenKind.Greater,
+        '=': TokenKind.Equal
     };
 
     /**
@@ -168,6 +185,8 @@ export class Lexer {
      */
     private static tokenFunctionMap = {
         '"': Lexer.prototype.string,
+        ' ': Lexer.prototype.whitespace,
+        '\t': Lexer.prototype.whitespace,
         '<': function (this: Lexer) {
             if (this.peek() === '/') {
                 this.advance();
@@ -175,9 +194,11 @@ export class Lexer {
             } else {
                 this.addToken(TokenKind.Less);
             }
-
-            if (isAlpha(this.peek())) {
-                this.nodeName();
+        },
+        '/': function (this: Lexer) {
+            if (this.peek() === '>') {
+                this.advance();
+                this.addToken(TokenKind.SlashGreater);
             }
         }
     };
@@ -247,6 +268,18 @@ export class Lexer {
     }
 
     /**
+     * Check that the previous token was of the specified type
+     */
+    private checkPreviousToken(kind: TokenKind) {
+        let previous = this.tokens[this.tokens.length - 1];
+        if (previous && previous.kind === kind) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Reads characters within a string literal, advancing through escaped characters to the
      * terminating `"`, and adds the produced token to the `tokens` array. Creates a `BrsError` if the
      * string is terminated by a newline or the end of input.
@@ -297,6 +330,17 @@ export class Lexer {
         //replace escaped quotemarks "" with a single quote
         value = value.replace(/""/g, '"');
         this.addToken(TokenKind.StringLiteral);
+
+    }
+
+    private whitespace() {
+        while (this.peek() === ' ' || this.peek() === '\t') {
+            this.advance();
+        }
+        const whitespaceToken = this.addToken(TokenKind.Whitespace);
+        this.leadingWhitespace = whitespaceToken.text;
+        this.tokens.pop();
+        this.start = this.current;
     }
 
     private nodeName() {
@@ -304,15 +348,13 @@ export class Lexer {
             this.advance();
         }
         this.addToken(TokenKind.NodeName);
-        if (this.peek() === '>') {
+    }
+
+    private nodeAttribute() {
+
+        while (isAlphaNumeric(this.peek()) || this.peek() === ':') {
             this.advance();
-            this.addToken(TokenKind.Greater);
-        } else if (this.peek() === '/') {
-            this.advance();
-            if (this.peek() === '>') {
-                this.advance();
-                this.addToken(TokenKind.SlashGreater);
-            }
         }
+        this.addToken(TokenKind.NodeAttribute);
     }
 }
