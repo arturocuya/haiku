@@ -174,7 +174,8 @@ module.exports = {
         'spaced-comment': 'off',
         'vars-on-top': 'off',
         'wrap-regex': 'off',
-        'no-void': ['error', { 'allowAsStatement': true }]
+        'no-void': ['error', { 'allowAsStatement': true }],
+        'func-names': 'off'
     },
     //disable some rules for certain files
     overrides: [{

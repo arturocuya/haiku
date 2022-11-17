@@ -5,6 +5,7 @@ import { TokenKind } from './TokenKind';
 import bsUtil from 'brighterscript/dist/util';
 import type { Diagnostic, Range } from 'vscode-languageserver';
 import type { Token as BsToken } from 'brighterscript';
+import { isAlpha, isAlphaNumeric } from 'brighterscript/dist/lexer/Characters';
 import { DiagnosticMessages } from '../DiagnosticMessages';
 
 export interface Token extends Omit<BsToken, 'kind'> {
@@ -158,8 +159,7 @@ export class Lexer {
     */
     private static tokenKindMap = {
         '{': TokenKind.CurlyOpen,
-        '}': TokenKind.CurlyClose,
-        ':': TokenKind.Colon
+        '}': TokenKind.CurlyClose
     };
 
     /**
@@ -167,7 +167,19 @@ export class Lexer {
      * Should be used in conjunction with `tokenKindMap`
      */
     private static tokenFunctionMap = {
-        '"': Lexer.prototype.string
+        '"': Lexer.prototype.string,
+        '<': function (this: Lexer) {
+            if (this.peek() === '/') {
+                this.advance();
+                this.addToken(TokenKind.LessSlash);
+            } else {
+                this.addToken(TokenKind.Less);
+            }
+
+            if (isAlpha(this.peek())) {
+                this.nodeName();
+            }
+        }
     };
 
     /**
@@ -285,5 +297,22 @@ export class Lexer {
         //replace escaped quotemarks "" with a single quote
         value = value.replace(/""/g, '"');
         this.addToken(TokenKind.StringLiteral);
+    }
+
+    private nodeName() {
+        while (isAlphaNumeric(this.peek())) {
+            this.advance();
+        }
+        this.addToken(TokenKind.NodeName);
+        if (this.peek() === '>') {
+            this.advance();
+            this.addToken(TokenKind.Greater);
+        } else if (this.peek() === '/') {
+            this.advance();
+            if (this.peek() === '>') {
+                this.advance();
+                this.addToken(TokenKind.SlashGreater);
+            }
+        }
     }
 }

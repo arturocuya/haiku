@@ -19,4 +19,36 @@ describe('Lexer tests', () => {
             TokenKind.Eof
         ]);
     });
+
+    it('scans nodes', () => {
+        let { tokens } = Lexer.scan('<Group></Group><Group/>');
+        expect(tokens.map(t => t.kind)).to.eql([
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.Greater,
+            TokenKind.LessSlash,
+            TokenKind.NodeName,
+            TokenKind.Greater,
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.SlashGreater,
+            TokenKind.Eof
+        ]);
+    });
+
+    it('scans nested nodes', () => {
+        let { tokens } = Lexer.scan('<Group><Child/></Group>');
+        expect(tokens.map(t => t.kind)).to.eql([
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.Greater,
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.SlashGreater,
+            TokenKind.LessSlash,
+            TokenKind.NodeName,
+            TokenKind.Greater,
+            TokenKind.Eof
+        ]);
+    });
 });
