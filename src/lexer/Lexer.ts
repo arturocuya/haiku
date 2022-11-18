@@ -13,7 +13,13 @@ enum LexerMode {
 // Ignored tokens
 const Whitespace = createToken({
     name: TokenType.Whitespace,
-    pattern: /\s+/,
+    pattern: /[\s\t]+/,
+    group: Lexer.SKIPPED
+});
+
+const Comment = createToken({
+    name: TokenType.Comment,
+    pattern: /'[^\n\r]+?(?:\*\)|[\n\r])/,
     group: Lexer.SKIPPED
 });
 
@@ -77,6 +83,7 @@ const SlashGreater = createToken({
 export const HaikuLexer = new Lexer({
     modes: {
         [LexerMode.Node]: [
+            Comment,
             Script,
             // Enters NodeClose mode
             LessSlash,
@@ -85,26 +92,32 @@ export const HaikuLexer = new Lexer({
             Whitespace
         ],
         [LexerMode.NodeOpen]: [
+            Comment,
             // Returns to Node mode
             SlashGreater, Greater,
             // Enters NodeAttributes mode
             NodeName,
-            Whitespace
+            Whitespace,
+            Comment
         ],
         [LexerMode.NodeAttributes]: [
+            Comment,
             // Jumps to Node mode
             SlashGreater, Greater,
             StringLiteral,
             DataBinding,
             NodeAttribute,
             Equal,
-            Whitespace
+            Whitespace,
+            Comment
         ],
         [LexerMode.NodeClose]: [
+            Comment,
             // Returns to Node mode
             Greater,
             NodeName,
-            Whitespace
+            Whitespace,
+            Comment
         ]
     },
     defaultMode: LexerMode.Node

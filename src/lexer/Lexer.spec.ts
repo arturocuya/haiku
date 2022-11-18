@@ -122,10 +122,50 @@ describe('Lexer tests', () => {
         expect(result.tokens[0]?.image).to.equal(`<script>${scriptContentsImage}</script>`);
     });
 
-    it.skip('scans comments', () => {});
+    it('ignores comments', () => {
+        const scriptImage = `
+            ' this comment should not be ignored because it's part of the script
+            ? "hello world"
+        `;
+        const input = `
+        ' this is a comment
+        ' comment ' inside a comment
+        '''''''''''''''''' aaaaaaaaa
+        <Label text="hello"/> ' inline comment
+        ' another comment
+        ' <Label text="non"/> ' this node should not be lexed
+        <script>${scriptImage}</script>
+        <Label
+            text="hello"
+            ' the following attribute should not be included
+            ' visible="false"
+            :focus
+        />
+        `;
+
+        const expectedTokens = [
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.SlashGreater,
+            TokenType.Script,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.NodeAttribute,
+            TokenType.SlashGreater
+        ];
+        const result = assertTokens(input, expectedTokens);
+        expect(result.tokens[6]?.image).to.equal(`<script>${scriptImage}</script>`);
+    });
 
     it('scans example from readme', () => {
-        const input = `<script>
+        const input = `'App.haiku
+        <script>
             m.haiku = [
                 "The west wind whispered",
                 "And touched the eyelids of spring:",

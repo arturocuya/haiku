@@ -11,7 +11,8 @@ export enum TokenType {
     Equal = 'Equal',
     NodeAttribute = 'NodeAttribute',
     Script = 'Script',
-    Whitespace = 'Whitespace'
+    Whitespace = 'Whitespace',
+    Comment = 'Comment'
 }
 
 
