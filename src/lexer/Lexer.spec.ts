@@ -1,28 +1,18 @@
 import { expect } from 'chai';
-import { Lexer } from './Lexer';
+import { HaikuLexer } from './Lexer';
 import { TokenKind } from './TokenKind';
 
+function assertTokens (input: string, expectedTokens: TokenKind[]) {
+    const result = HaikuLexer.tokenize(input);
+    expect(result.errors).to.be.empty;
+    const actualTokens = result.tokens.map((token) => token.tokenType.name);
+    expect(actualTokens).to.deep.equal(expectedTokens);
+}
+
 describe('Lexer tests', () => {
-    it('scans string literals', () => {
-        let { tokens } = Lexer.scan('"hello"');
-        expect(tokens.map(t => t.kind)).to.eql([
-            TokenKind.StringLiteral,
-            TokenKind.Eof
-        ]);
-    });
-
-    it('scans curly brackets', () => {
-        let { tokens } = Lexer.scan('{}');
-        expect(tokens.map(t => t.kind)).to.eql([
-            TokenKind.CurlyOpen,
-            TokenKind.CurlyClose,
-            TokenKind.Eof
-        ]);
-    });
-
     it('scans nodes', () => {
-        let { tokens } = Lexer.scan('<Group></Group><Group/>');
-        expect(tokens.map(t => t.kind)).to.eql([
+        const input = '<Group></Group><Group/>';
+        const expectedTokens = [
             TokenKind.Less,
             TokenKind.NodeName,
             TokenKind.Greater,
@@ -31,14 +21,14 @@ describe('Lexer tests', () => {
             TokenKind.Greater,
             TokenKind.Less,
             TokenKind.NodeName,
-            TokenKind.SlashGreater,
-            TokenKind.Eof
-        ]);
+            TokenKind.SlashGreater
+        ];
+        assertTokens(input, expectedTokens);
     });
 
     it('scans nested nodes', () => {
-        let { tokens } = Lexer.scan('<Group><Child/></Group>');
-        expect(tokens.map(t => t.kind)).to.eql([
+        const input = '<Group><Child/></Group>';
+        const expectedTokens = [
             TokenKind.Less,
             TokenKind.NodeName,
             TokenKind.Greater,
@@ -47,14 +37,14 @@ describe('Lexer tests', () => {
             TokenKind.SlashGreater,
             TokenKind.LessSlash,
             TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.Eof
-        ]);
+            TokenKind.Greater
+        ];
+        assertTokens(input, expectedTokens);
     });
 
     it('ignores whitespace and newlines', () => {
-        let { tokens } = Lexer.scan('\n  <Group>\t\t\t\n\n<Child/> \n \t  </Group> \t \t\n \t\t');
-        expect(tokens.map(t => t.kind)).to.eql([
+        const input = '\n  <Group>\t\t\t\n\n<Child/> \n \t  </Group> \t \t\n \t\t';
+        const expectedTokens = [
             TokenKind.Less,
             TokenKind.NodeName,
             TokenKind.Greater,
@@ -63,12 +53,13 @@ describe('Lexer tests', () => {
             TokenKind.SlashGreater,
             TokenKind.LessSlash,
             TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.Eof
-        ]);
+            TokenKind.Greater
+        ];
+        assertTokens(input, expectedTokens);
     });
 
     it('scans attributes', () => {
+        const input = '<Label text="hello" :focus on:visible="handleVisible" translation="[10,10]"/>';
         const expectedTokens = [
             TokenKind.Less,
             TokenKind.NodeName,
@@ -82,18 +73,8 @@ describe('Lexer tests', () => {
             TokenKind.NodeAttribute,
             TokenKind.Equal,
             TokenKind.StringLiteral,
-            TokenKind.SlashGreater,
-            TokenKind.Eof
+            TokenKind.SlashGreater
         ];
-
-        // TODO: make `:focus` work and expect 0 diagnostics
-
-        let lexer = Lexer.scan('<Label text="hello" :focus on:visible="handleVisible" translation="[10,10]"/>');
-        expect(lexer.tokens.map(t => t.kind)).to.eql(expectedTokens);
-        // expect(lexer.diagnostics).to.be.empty;
-
-        lexer = Lexer.scan('<Label\n\ttext="hello"\n\t:focus\n\ton:visible="handleVisible"\n\ttranslation="[10,10]"\n/>');
-        expect(lexer.tokens.map(t => t.kind)).to.eql(expectedTokens);
-        // expect(lexer.diagnostics).to.be.empty;
+        assertTokens(input, expectedTokens);
     });
 });

@@ -8,6 +8,7 @@ specifiers:
   '@typescript-eslint/parser': ^5.41.0
   brighterscript: ^0.60.6
   chai: ^4.3.6
+  chevrotain: ^10.4.1
   cz-conventional-changelog: ^3.3.0
   eslint: ^8.26.0
   eslint-plugin-github: ^4.4.0
@@ -21,6 +22,7 @@ specifiers:
 
 dependencies:
   brighterscript: 0.60.6
+  chevrotain: 10.4.1
   vscode-languageserver: 8.0.2
 
 devDependencies:
@@ -257,6 +259,29 @@ packages:
       '@babel/helper-validator-identifier': 7.19.1
       to-fast-properties: 2.0.0
     dev: true
+
+  /@chevrotain/cst-dts-gen/10.4.1:
+    resolution: {integrity: sha512-wNDw9Rh6dPJKH275er8nijuDIpTcG2GjQANjnG8RaeGkZ3JN99+u6HRtnjKhjoi4NY9rg+udHChHQSskZtlkPw==}
+    dependencies:
+      '@chevrotain/gast': 10.4.1
+      '@chevrotain/types': 10.4.1
+      lodash: 4.17.21
+    dev: false
+
+  /@chevrotain/gast/10.4.1:
+    resolution: {integrity: sha512-HRv66QVbmC7eb/ppwsPCfNH4oZ/VV+thuMZILm7A7W6Q5M0tqiZv0ecdiB8hydmPO8je0aSrXEOCcaA6fuXc3Q==}
+    dependencies:
+      '@chevrotain/types': 10.4.1
+      lodash: 4.17.21
+    dev: false
+
+  /@chevrotain/types/10.4.1:
+    resolution: {integrity: sha512-J8iyZNn/RGYWSyNJdGd3QI01gKFUx4mCSM0+vEqmIw9TXFlxj1IsHteXFahtezSHjgMtBTqWn6hb2YxCLjpHVg==}
+    dev: false
+
+  /@chevrotain/utils/10.4.1:
+    resolution: {integrity: sha512-vPIgzES8QhHMchb5UaQ4V/c9xmoaECN+4EXpuhWE+pu3LXJUUtAwDn/SEKFgtyiRo269Hxv3b0NbPlQfH0jeVA==}
+    dev: false
 
   /@commitlint/config-validator/17.1.0:
     resolution: {integrity: sha512-Q1rRRSU09ngrTgeTXHq6ePJs2KrI+axPTgkNYDWSJIuS1Op4w3J30vUfSXjwn5YEJHklK3fSqWNHmBhmTR7Vdg==}
@@ -1012,6 +1037,17 @@ packages:
   /check-error/1.0.2:
     resolution: {integrity: sha512-BrgHpW9NURQgzoNyjfq0Wu6VFO6D7IZEmJNdtgNqpzGG8RuNFHt2jQxWlAs4HMe119chBnv+34syEZtc6IhLtA==}
     dev: true
+
+  /chevrotain/10.4.1:
+    resolution: {integrity: sha512-1y4vnssauVmrrP5MBaJ6DZvsv3BpXLlKVNK5S52fTGQHqg09qxMDBAz0wZbb04Ovc1pBCA4obcCjOlRioIV+cA==}
+    dependencies:
+      '@chevrotain/cst-dts-gen': 10.4.1
+      '@chevrotain/gast': 10.4.1
+      '@chevrotain/types': 10.4.1
+      '@chevrotain/utils': 10.4.1
+      lodash: 4.17.21
+      regexp-to-ast: 0.5.0
+    dev: false
 
   /chevrotain/7.1.1:
     resolution: {integrity: sha512-wy3mC1x4ye+O+QkEinVJkPf5u2vsrDIYW9G7ZuwFl6v/Yu0LwUuT2POsb+NUWApebyxfkQq6+yDfRExbnI5rcw==}
@@ -2740,7 +2776,6 @@ packages:
 
   /lodash/4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: true
 
   /log-symbols/4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
