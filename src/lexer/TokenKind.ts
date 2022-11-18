@@ -11,6 +11,7 @@ export enum TokenKind {
     StringLiteral = 'StringLiteral',
     Equal = 'Equal',
     NodeAttribute = 'NodeAttribute',
+    Script = 'Script',
     Whitespace = 'Whitespace'
 }
 

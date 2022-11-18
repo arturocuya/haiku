@@ -101,4 +101,24 @@ describe('Lexer tests', () => {
         expect(result.tokens[4]?.image).to.equal('{m.text}');
         expect(result.tokens[7]?.image).to.equal(`{${handlerFunctionImage}}`);
     });
+
+    it('scans the script tag', () => {
+        assertTokens('<script></script>', [TokenKind.Script]);
+    });
+
+    it('scans the contents of the <script> tag', () => {
+        const scriptContentsImage = '\n\tmessage = "Hello from the console"\n\tprint message\n';
+        const input = `<script>${scriptContentsImage}</script>\n<Label text="Hello from the screen" />`;
+        const expectedTokens = [
+            TokenKind.Script,
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.NodeAttribute,
+            TokenKind.Equal,
+            TokenKind.StringLiteral,
+            TokenKind.SlashGreater
+        ];
+        const result = assertTokens(input, expectedTokens);
+        expect(result.tokens[0]?.image).to.equal(`<script>${scriptContentsImage}</script>`);
+    });
 });

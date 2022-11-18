@@ -38,6 +38,11 @@ const DataBinding = createToken({
     pattern: /\{[^}]*\}/
 });
 
+const Script = createToken({
+    name: TokenKind.Script,
+    pattern: /<script>[\s\S]*?<\/script>/
+});
+
 // Tokens that enter a new mode
 const Less = createToken({
     name: TokenKind.Less,
@@ -72,6 +77,7 @@ const SlashGreater = createToken({
 export const HaikuLexer = new Lexer({
     modes: {
         [LexerMode.Node]: [
+            Script,
             // Enters NodeClose mode
             LessSlash,
             // Enters NodeOpen mode
