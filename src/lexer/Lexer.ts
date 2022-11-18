@@ -33,6 +33,11 @@ const StringLiteral = createToken({
     pattern: /"[^"]*"/
 });
 
+const DataBinding = createToken({
+    name: TokenKind.DataBinding,
+    pattern: /\{[^}]*\}/
+});
+
 // Tokens that enter a new mode
 const Less = createToken({
     name: TokenKind.Less,
@@ -52,12 +57,6 @@ const NodeName = createToken({
     push_mode: LexerMode.NodeAttributes
 });
 
-const CurlyOpen = createToken({
-    name: TokenKind.CurlyOpen,
-    pattern: /{/,
-    push_mode: LexerMode.DataBinding
-});
-
 const Greater = createToken({
     name: TokenKind.Greater,
     pattern: />/,
@@ -68,13 +67,6 @@ const SlashGreater = createToken({
     name: TokenKind.SlashGreater,
     pattern: /\/>/,
     push_mode: LexerMode.Node
-});
-
-// Tokens that exit the current mode
-const CurlyClose = createToken({
-    name: TokenKind.CurlyClose,
-    pattern: /}/,
-    pop_mode: true
 });
 
 export const HaikuLexer = new Lexer({
@@ -94,16 +86,16 @@ export const HaikuLexer = new Lexer({
             Whitespace
         ],
         [LexerMode.NodeAttributes]: [
-            // Returns to Node mode
+            // Jumps to Node mode
             SlashGreater, Greater,
-            NodeAttribute,
-            // Exits back to NodeOpen mode
             StringLiteral,
+            DataBinding,
+            NodeAttribute,
             Equal,
             Whitespace
         ],
         [LexerMode.NodeClose]: [
-            // Exits back to Node mode
+            // Returns to Node mode
             Greater,
             NodeName,
             Whitespace

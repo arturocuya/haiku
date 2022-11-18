@@ -7,6 +7,7 @@ function assertTokens (input: string, expectedTokens: TokenKind[]) {
     expect(result.errors).to.be.empty;
     const actualTokens = result.tokens.map((token) => token.tokenType.name);
     expect(actualTokens).to.deep.equal(expectedTokens);
+    return result;
 }
 
 describe('Lexer tests', () => {
@@ -75,6 +76,29 @@ describe('Lexer tests', () => {
             TokenKind.StringLiteral,
             TokenKind.SlashGreater
         ];
-        assertTokens(input, expectedTokens);
+        const result = assertTokens(input, expectedTokens);
+        expect(result.tokens[2]?.image).to.equal('text');
+        expect(result.tokens[4]?.image).to.equal('"hello"');
+        expect(result.tokens[5]?.image).to.equal(':focus');
+        expect(result.tokens[6]?.image).to.equal('on:visible');
+    });
+
+    it('scans data bindings', () => {
+        const handlerFunctionImage = `sub ()\n\t? "now visible"\nend sub`;
+        const input = `<Label text={m.text} on:visible={${handlerFunctionImage}}/>`;
+        const expectedTokens = [
+            TokenKind.Less,
+            TokenKind.NodeName,
+            TokenKind.NodeAttribute,
+            TokenKind.Equal,
+            TokenKind.DataBinding,
+            TokenKind.NodeAttribute,
+            TokenKind.Equal,
+            TokenKind.DataBinding,
+            TokenKind.SlashGreater
+        ];
+        const result = assertTokens(input, expectedTokens);
+        expect(result.tokens[4]?.image).to.equal('{m.text}');
+        expect(result.tokens[7]?.image).to.equal(`{${handlerFunctionImage}}`);
     });
 });

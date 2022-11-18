@@ -5,8 +5,7 @@ export enum TokenKind {
     // The name of a tag or SG node.
     NodeName = 'NodeName',
     SlashGreater = 'SlashGreater',
-    // Source code within <script> or in any data binding {expression}
-    BrsCode = 'BrsCode',
+    DataBinding = 'DataBinding',
     CurlyOpen = 'CurlyOpen',
     CurlyClose = 'CurlyClose',
     StringLiteral = 'StringLiteral',
