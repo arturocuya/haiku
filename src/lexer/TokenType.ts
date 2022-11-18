@@ -1,8 +1,7 @@
-export enum TokenKind {
+export enum TokenType {
     Less = 'Less',
     Greater = 'Greater',
     LessSlash = 'LessSlash',
-    // The name of a tag or SG node.
     NodeName = 'NodeName',
     SlashGreater = 'SlashGreater',
     DataBinding = 'DataBinding',

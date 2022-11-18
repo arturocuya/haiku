@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { HaikuLexer } from './Lexer';
-import { TokenKind } from './TokenKind';
+import { TokenType } from './TokenType';
 
-function assertTokens (input: string, expectedTokens: TokenKind[]) {
+function assertTokens (input: string, expectedTokens: TokenType[]) {
     const result = HaikuLexer.tokenize(input);
     expect(result.errors).to.be.empty;
     const actualTokens = result.tokens.map((token) => token.tokenType.name);
@@ -14,15 +14,15 @@ describe('Lexer tests', () => {
     it('scans nodes', () => {
         const input = '<Group></Group><Group/>';
         const expectedTokens = [
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.LessSlash,
-            TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.SlashGreater
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.Greater,
+            TokenType.LessSlash,
+            TokenType.NodeName,
+            TokenType.Greater,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.SlashGreater
         ];
         assertTokens(input, expectedTokens);
     });
@@ -30,15 +30,15 @@ describe('Lexer tests', () => {
     it('scans nested nodes', () => {
         const input = '<Group><Child/></Group>';
         const expectedTokens = [
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.SlashGreater,
-            TokenKind.LessSlash,
-            TokenKind.NodeName,
-            TokenKind.Greater
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.Greater,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.SlashGreater,
+            TokenType.LessSlash,
+            TokenType.NodeName,
+            TokenType.Greater
         ];
         assertTokens(input, expectedTokens);
     });
@@ -46,15 +46,15 @@ describe('Lexer tests', () => {
     it('ignores whitespace and newlines', () => {
         const input = '\n  <Group>\t\t\t\n\n<Child/> \n \t  </Group> \t \t\n \t\t';
         const expectedTokens = [
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.Greater,
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.SlashGreater,
-            TokenKind.LessSlash,
-            TokenKind.NodeName,
-            TokenKind.Greater
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.Greater,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.SlashGreater,
+            TokenType.LessSlash,
+            TokenType.NodeName,
+            TokenType.Greater
         ];
         assertTokens(input, expectedTokens);
     });
@@ -62,19 +62,19 @@ describe('Lexer tests', () => {
     it('scans attributes', () => {
         const input = '<Label text="hello" :focus on:visible="handleVisible" translation="[10,10]"/>';
         const expectedTokens = [
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.StringLiteral,
-            TokenKind.NodeAttribute,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.StringLiteral,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.StringLiteral,
-            TokenKind.SlashGreater
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.NodeAttribute,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.SlashGreater
         ];
         const result = assertTokens(input, expectedTokens);
         expect(result.tokens[2]?.image).to.equal('text');
@@ -87,15 +87,15 @@ describe('Lexer tests', () => {
         const handlerFunctionImage = `sub ()\n\t? "now visible"\nend sub`;
         const input = `<Label text={m.text} on:visible={${handlerFunctionImage}}/>`;
         const expectedTokens = [
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.DataBinding,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.DataBinding,
-            TokenKind.SlashGreater
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.DataBinding,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.DataBinding,
+            TokenType.SlashGreater
         ];
         const result = assertTokens(input, expectedTokens);
         expect(result.tokens[4]?.image).to.equal('{m.text}');
@@ -103,22 +103,58 @@ describe('Lexer tests', () => {
     });
 
     it('scans the script tag', () => {
-        assertTokens('<script></script>', [TokenKind.Script]);
+        assertTokens('<script></script>', [TokenType.Script]);
     });
 
     it('scans the contents of the <script> tag', () => {
         const scriptContentsImage = '\n\tmessage = "Hello from the console"\n\tprint message\n';
         const input = `<script>${scriptContentsImage}</script>\n<Label text="Hello from the screen" />`;
         const expectedTokens = [
-            TokenKind.Script,
-            TokenKind.Less,
-            TokenKind.NodeName,
-            TokenKind.NodeAttribute,
-            TokenKind.Equal,
-            TokenKind.StringLiteral,
-            TokenKind.SlashGreater
+            TokenType.Script,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.SlashGreater
         ];
         const result = assertTokens(input, expectedTokens);
         expect(result.tokens[0]?.image).to.equal(`<script>${scriptContentsImage}</script>`);
+    });
+
+    it.skip('scans comments', () => {});
+
+    it('scans example from readme', () => {
+        const input = `<script>
+            m.haiku = [
+                "The west wind whispered",
+                "And touched the eyelids of spring:",
+                "Her eyes, Primroses."
+            ]
+            m.index = 0
+        </script>
+        <Button
+            :focus="true"
+            text={m.haiku[m.index]}
+            on:buttonSelected={sub ()
+                m.index = m.index < m.haiku.count() - 1 ? m.index + 1 : 0
+            end sub}
+        />`;
+        const expectedTokens = [
+            TokenType.Script,
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.DataBinding,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.DataBinding,
+            TokenType.SlashGreater
+        ];
+        assertTokens(input, expectedTokens);
     });
 });
