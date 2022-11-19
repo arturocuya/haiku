@@ -80,6 +80,21 @@ const SlashGreater = createToken({
     push_mode: LexerMode.Node
 });
 
+export const Tokens = {
+    [TokenType.Whitespace]: Whitespace,
+    [TokenType.Comment]: Comment,
+    [TokenType.Equal]: Equal,
+    [TokenType.NodeAttribute]: NodeAttribute,
+    [TokenType.StringLiteral]: StringLiteral,
+    [TokenType.DataBinding]: DataBinding,
+    [TokenType.Script]: Script,
+    [TokenType.Less]: Less,
+    [TokenType.LessSlash]: LessSlash,
+    [TokenType.NodeName]: NodeName,
+    [TokenType.Greater]: Greater,
+    [TokenType.SlashGreater]: SlashGreater
+};
+
 export const HaikuLexer = new Lexer({
     modes: {
         [LexerMode.Node]: [
@@ -122,4 +137,3 @@ export const HaikuLexer = new Lexer({
     },
     defaultMode: LexerMode.Node
 });
-
