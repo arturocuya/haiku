@@ -7,8 +7,9 @@ import { TokenType } from './TokenType';
 function assertVisitor(input: string, expectedAst: any) {
     const tokens = HaikuLexer.tokenize(input).tokens;
     HaikuParser.input = tokens;
-    const cst = HaikuParser.ProgramStatement();
-    expect(HaikuParser.errors).to.be.empty;
+    const parser = HaikuParser;
+    const cst = parser.ProgramStatement();
+    expect(parser.errors).to.be.empty;
     const visitor = new HaikuVisitor();
     const ast = visitor.visit(cst);
     expect(ast).to.eql(expectedAst);
@@ -17,6 +18,19 @@ function assertVisitor(input: string, expectedAst: any) {
 describe('Visitor tests', () => {
     it('parses empty program', () => {
         assertVisitor('', { script: '', nodes: [] });
+    });
+
+    it('parses self closing node', () => {
+        assertVisitor('<Button />', {
+            script: '',
+            nodes: [
+                {
+                    name: 'Button',
+                    attributes: [],
+                    children: []
+                }
+            ]
+        });
     });
 
     it('parses program with script', () => {
@@ -93,6 +107,17 @@ describe('Visitor tests', () => {
                     children: [],
                     attributes: [{ name: 'text', value: { type: TokenType.StringLiteral, image: '"hello"' } }]
                 }]
+            }]
+        });
+    });
+
+    it('parses nodes and script', () => {
+        assertVisitor('<script>print "hello world"</script><Button />', {
+            script: 'print "hello world"',
+            nodes: [{
+                name: 'Button',
+                attributes: [],
+                children: []
             }]
         });
     });

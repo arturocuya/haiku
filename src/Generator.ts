@@ -1,3 +1,11 @@
+import {
+    BrsFile,
+    Lexer as BrsLexer,
+    Parser as BrsParser,
+    Program as BrsProgram
+} from 'brighterscript';
+import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState';
+
 import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
@@ -7,7 +15,6 @@ export class Generator {
 
     static generate(program: string): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
-
         return new Generator().generate(ast);
     }
 
@@ -26,9 +33,20 @@ export class Generator {
     generateBrs(): string {
         let brs = '';
 
-        const initStatements = this.initStatements();
+        const { statements: scriptStatements, callables: scriptCallables } = this.scriptStatements();
+
+        const initStatements = [
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            ...scriptStatements,
+            ...this.createAndMountStatements()
+        ];
+
         if (initStatements.length > 0) {
-            brs += this.callable('sub', 'init', this.initStatements());
+            brs += this.callable('sub', 'init', initStatements);
+        }
+
+        if (scriptCallables && scriptCallables.length > 0) {
+            brs += scriptCallables.join('\n');
         }
 
         return brs;
@@ -69,12 +87,22 @@ export class Generator {
         return result;
     }
 
-    private initStatements(): string[] {
+    private createAndMountStatements(): string[] {
         const initStatements: string[] = [];
         for (const node of this.ast.nodes) {
             initStatements.push(...this.createObject(node));
             initStatements.push(`m.top.appendChild(${node.name.toLowerCase()})`);
         }
         return initStatements;
+    }
+
+    private scriptStatements(): { statements: string[]; callables: string[] } {
+        const { tokens: brsTokens } = BrsLexer.scan(this.ast.script);
+        const brsParser = BrsParser.parse(brsTokens);
+        const statements = brsParser.statements.map(statement => {
+            const transpiled = statement.transpile(new BrsTranspileState(new BrsFile('', '', new BrsProgram({}))));
+            return transpiled.map(t => t.toString()).join('');
+        });
+        return { statements: statements, callables: [] };
     }
 }

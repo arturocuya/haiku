@@ -31,25 +31,28 @@ end sub`;
         expect(actual.brs).to.equal(expected);
     });
 
-    // todo: need to start using brighterscript parser to identify callables in the script
-    it.skip('inserts all the script non-callable statements as-is', () => {
+    it('inserts all the script non-callable statements as-is', () => {
         const input = `
         <script>
-            x = 1
-            sub foo()
-                ? "foo"
+            x = foo(1,2)
+            m.y = 2
+            print "hello"
+            m.foo = sub()
+                print "foo"
             end sub
         </script>
         <Button />
         `;
 
         const expected = `sub init()
-\t x = 1
-\t button = CreateObject("roSGNode", "Button")
-\t m.top.appendChild(button)
+\tx = foo(1, 2)
+\tm.y = 2
+\tprint "hello"
+\tm.foo = sub()
+    print "foo"
 end sub
-sub foo()
-\t ? "foo"
+\tbutton = CreateObject("roSGNode", "Button")
+\tm.top.appendChild(button)
 end sub`;
 
         const actual = Generator.generate(input);

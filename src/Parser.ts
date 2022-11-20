@@ -10,11 +10,11 @@ export class HaikuParserCst extends CstParser {
     }
 
     ProgramStatement = this.RULE(Rule.ProgramStatement, () => {
-        this.MANY(() => {
-            this.SUBRULE(this.NodeStatement);
-        });
         this.OPTION(() => {
             this.SUBRULE(this.ScriptStatement);
+        });
+        this.MANY(() => {
+            this.SUBRULE(this.NodeStatement);
         });
     });
 
