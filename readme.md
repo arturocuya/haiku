@@ -220,26 +220,8 @@ You can also set the handler function in-line:
 
 ## Using BrighterScript
 
-[BrighterScript](https://github.com/rokucommunity/brighterscript#readme) is a superset language that provides new features and syntax enhancement to Roku's BrightScript. Haiku supports BrighterScript by default inside the `<script>` tag and on the data binding statements.
+[BrighterScript](https://github.com/rokucommunity/brighterscript#readme) is a superset language that provides new features and syntax enhancement to Roku's BrightScript.
+
+**Haiku supports BrighterScript by default inside the `<script>` tag and on the data binding statements.**
 
 > This can be seen on the previous example with the ternary conditional operator.
-
-We highly recommend using the BrighterScript language. However, if you don't plan on using it you can optimize your build times by applying the following configuration:
-
-1. On a per component basis, you can specify that you will be using vanilla BrightScript on your script like so:
-
-```xml
-<script lang="brs">
-</script>
-```
-
-2. Globally, you can add these configurations to `bsconfig.json`:
-
-```json
-{
-    "haiku": {
-        "scriptLang": "brs",
-        "bindingsLang": "brs"
-    }
-}
-```

@@ -20,6 +20,7 @@ function brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTra
 
 export class Generator {
     ast: HaikuAst;
+    someNodeHasFocus: boolean;
 
     static generate(program: string): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
@@ -28,6 +29,7 @@ export class Generator {
 
     generate(ast: HaikuAst): { xml: string; brs: string } {
         this.ast = ast;
+        this.someNodeHasFocus = false;
         return {
             xml: this.generateXml(),
             brs: this.generateBrs()
@@ -67,6 +69,8 @@ export class Generator {
     private createObject(node: HaikuNodeAst): string[] {
         const attributes = node.attributes.filter(a => a.value && !a.name.startsWith('on:'));
         const observableAttributes = node.attributes.filter(a => a.value && a.name.startsWith('on:'));
+        const specialAttributes = node.attributes.filter(a => !a.value);
+
         const identifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
 
         const result = [
@@ -90,6 +94,14 @@ export class Generator {
         // Handle observable attributes
         for (const observable of observableAttributes) {
             result.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
+        }
+
+        // Handle special attributes
+        for (const sAttribute of specialAttributes) {
+            if (sAttribute.name === ':focus' && !this.someNodeHasFocus) {
+                result.push(`${identifier}.setFocus(true)`);
+                this.someNodeHasFocus = true;
+            }
         }
 
         return result;

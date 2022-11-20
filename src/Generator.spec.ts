@@ -103,4 +103,24 @@ end function`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('handles special node attributes', () => {
+        const input = `
+        <Button
+            text="press"
+            :focus
+        />
+        <Label :focus="true" />`;
+        const expected = `sub init()
+\tbutton = CreateObject("roSGNode", "Button")
+\tbutton.text = "press"
+\tbutton.setFocus(true)
+\tm.top.appendChild(button)
+\tlabel = CreateObject("roSGNode", "Label")
+\tm.top.appendChild(label)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });
