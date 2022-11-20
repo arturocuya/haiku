@@ -30,12 +30,12 @@ describe('Visitor tests', () => {
         // With explicit closing tag
         assertVisitor('<Group></Group>', {
             script: '',
-            nodes: [{ name: 'Group', attributes: [] }]
+            nodes: [{ name: 'Group', children: [], attributes: [] }]
         });
         // With self closing tag
         assertVisitor('<Label/>', {
             script: '',
-            nodes: [{ name: 'Label', attributes: [] }]
+            nodes: [{ name: 'Label', children: [], attributes: [] }]
         });
     });
 
@@ -45,6 +45,7 @@ describe('Visitor tests', () => {
             script: '',
             nodes: [{
                 name: 'Label',
+                children: [],
                 attributes: [{ name: 'text', value: { type: TokenType.StringLiteral, image: '"hello"' } }]
             }]
         });
@@ -53,6 +54,7 @@ describe('Visitor tests', () => {
             script: '',
             nodes: [{
                 name: 'Label',
+                children: [],
                 attributes: [{ name: 'text', value: { type: TokenType.DataBinding, image: '{m.greet}' } }]
             }]
         });
@@ -61,6 +63,7 @@ describe('Visitor tests', () => {
             script: '',
             nodes: [{
                 name: 'Button',
+                children: [],
                 attributes: [{ name: ':focus', value: { type: 'none', image: undefined } }]
             }]
         });
@@ -69,6 +72,7 @@ describe('Visitor tests', () => {
             script: '',
             nodes: [{
                 name: 'Label',
+                children: [],
                 attributes: [
                     { name: 'text', value: { type: TokenType.StringLiteral, image: '"hello"' } },
                     { name: ':focus', value: { type: 'none', image: undefined } },

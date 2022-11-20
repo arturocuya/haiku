@@ -1,3 +1,4 @@
+import { HaikuLexer } from './Lexer';
 import { HaikuParser } from './Parser';
 import { TokenType } from './TokenType';
 
@@ -7,6 +8,14 @@ export class HaikuVisitor extends BaseVisitor {
     constructor() {
         super();
         this.validateVisitor();
+    }
+
+    public static programToAst(program: string) {
+        const tokens = HaikuLexer.tokenize(program).tokens;
+        HaikuParser.input = tokens;
+        const cst = HaikuParser.ProgramStatement();
+        const visitor = new HaikuVisitor();
+        return visitor.visit(cst);
     }
 
     ProgramStatement(ctx: any) {
@@ -25,7 +34,7 @@ export class HaikuVisitor extends BaseVisitor {
     }
 
     NodeAttributeStatement(ctx: any) {
-        let type: TokenType | 'none' = 'none';
+        let type: TokenType.DataBinding | TokenType.StringLiteral | 'none' = 'none';
         let image: string | undefined;
 
         if (ctx[TokenType.DataBinding]?.[0]) {
@@ -41,4 +50,21 @@ export class HaikuVisitor extends BaseVisitor {
             value: { type: type, image: image }
         };
     }
+}
+
+export interface HaikuNodeAst {
+    name: string;
+    attributes: {
+        name: string;
+        value: {
+            type: TokenType.DataBinding | TokenType.StringLiteral | 'none';
+            image: string | undefined;
+        };
+    }[];
+    children: HaikuNodeAst[];
+}
+
+export interface HaikuAst {
+    script: string;
+    nodes: HaikuNodeAst[];
 }
