@@ -1,3 +1,6 @@
+import type {
+    Statement as BrsStatement
+} from 'brighterscript';
 import {
     BrsFile,
     Lexer as BrsLexer,
@@ -9,6 +12,11 @@ import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState'
 import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
+
+function brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTranspileState) {
+    const transpiled = statement.transpile(brsTranspileState);
+    return transpiled.map(t => t.toString()).join('');
+}
 
 export class Generator {
     ast: HaikuAst;
@@ -46,7 +54,7 @@ export class Generator {
         }
 
         if (scriptCallables && scriptCallables.length > 0) {
-            brs += scriptCallables.join('\n');
+            brs += '\n' + scriptCallables.join('\n');
         }
 
         return brs;
@@ -99,10 +107,16 @@ export class Generator {
     private scriptStatements(): { statements: string[]; callables: string[] } {
         const { tokens: brsTokens } = BrsLexer.scan(this.ast.script);
         const brsParser = BrsParser.parse(brsTokens);
-        const statements = brsParser.statements.map(statement => {
-            const transpiled = statement.transpile(new BrsTranspileState(new BrsFile('', '', new BrsProgram({}))));
-            return transpiled.map(t => t.toString()).join('');
-        });
-        return { statements: statements, callables: [] };
+        const brsTranspileState = new BrsTranspileState(
+            new BrsFile('', '', new BrsProgram({}))
+        );
+
+        const statements = brsParser.statements
+            .filter(s => s.constructor.name !== 'FunctionStatement')
+            .map((s) => brsStatementToString(s, brsTranspileState));
+        const callables = brsParser.statements
+            .filter(s => s.constructor.name === 'FunctionStatement')
+            .map((s) => brsStatementToString(s, brsTranspileState));
+        return { statements: statements, callables: callables };
     }
 }

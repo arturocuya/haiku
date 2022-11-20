@@ -73,4 +73,34 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('inserts all script callables after init()', () => {
+        const input = `
+        <script>
+            print "hello"
+            sub foo()
+                print "foo"
+            end sub
+            function bar(x)
+                print x
+            end function
+        </script>
+        <Button />
+        `;
+
+        const expected = `sub init()
+\tprint "hello"
+\tbutton = CreateObject("roSGNode", "Button")
+\tm.top.appendChild(button)
+end sub
+sub foo()
+    print "foo"
+end sub
+function bar(x)
+    print x
+end function`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });
