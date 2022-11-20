@@ -39,19 +39,31 @@ export class Generator {
     }
 
     private createObject(node: HaikuNodeAst): string[] {
-        const identifier = node.name.toLowerCase();
-        const attributes = node.attributes.filter(
-            a => a.value.image !== undefined
-        );
+        const attributes = node.attributes.filter(a => a.value && !a.name.startsWith('on:'));
+        const observableAttributes = node.attributes.filter(a => a.value && a.name.startsWith('on:'));
+        const identifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
 
         const result = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
         ];
 
+        // Handle regular attributes
         for (const attribute of attributes) {
-            const attributeValue = attribute.value.type === TokenType.StringLiteral ? attribute.value.image : attribute.value.image?.substring(1, attribute.value.image.length - 1);
+            if (attribute.value) {
+                let value = '';
+                if (attribute.value.type === TokenType.StringLiteral) {
+                    value = attribute.value.image;
+                } else if (attribute.value.type === TokenType.DataBinding) {
+                    value = attribute.value.image.substring(1, attribute.value.image.length - 1);
+                }
 
-            result.push(`${identifier}.${attribute.name} = ${attributeValue}`);
+                result.push(`${identifier}.${attribute.name} = ${value}`);
+            }
+        }
+
+        // Handle observable attributes
+        for (const observable of observableAttributes) {
+            result.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
         }
 
         return result;

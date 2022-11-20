@@ -55,4 +55,19 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('handles observers for attributes with `on:` prefix', () => {
+        const input = `<Button
+            text="press"
+            on:buttonSelected="handleButton"
+        />`;
+        const expected = `sub init()
+\tm.button = CreateObject("roSGNode", "Button")
+\tm.button.text = "press"
+\tm.button.observeField("buttonSelected", "handleButton")
+\tm.top.appendChild(button)
+end sub`;
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });

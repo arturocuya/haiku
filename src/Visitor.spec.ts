@@ -64,7 +64,7 @@ describe('Visitor tests', () => {
             nodes: [{
                 name: 'Button',
                 children: [],
-                attributes: [{ name: ':focus', value: { type: 'none', image: undefined } }]
+                attributes: [{ name: ':focus', value: undefined }]
             }]
         });
         // Multiple attributes
@@ -75,7 +75,7 @@ describe('Visitor tests', () => {
                 children: [],
                 attributes: [
                     { name: 'text', value: { type: TokenType.StringLiteral, image: '"hello"' } },
-                    { name: ':focus', value: { type: 'none', image: undefined } },
+                    { name: ':focus', value: undefined },
                     { name: 'translation', value: { type: TokenType.DataBinding, image: '{m.translation}' } }
                 ]
             }]

@@ -34,20 +34,24 @@ export class HaikuVisitor extends BaseVisitor {
     }
 
     NodeAttributeStatement(ctx: any) {
-        let type: TokenType.DataBinding | TokenType.StringLiteral | 'none' = 'none';
-        let image: string | undefined;
+        let valueType: TokenType.DataBinding | TokenType.StringLiteral;
+        let value: { type: typeof valueType; image: string } | undefined;
 
         if (ctx[TokenType.DataBinding]?.[0]) {
-            type = TokenType.DataBinding;
-            image = ctx[TokenType.DataBinding][0].image;
+            value = {
+                type: TokenType.DataBinding,
+                image: ctx[TokenType.DataBinding][0].image
+            };
         } else if (ctx[TokenType.StringLiteral]?.[0]) {
-            type = TokenType.StringLiteral;
-            image = ctx[TokenType.StringLiteral][0].image;
+            value = {
+                type: TokenType.StringLiteral,
+                image: ctx[TokenType.StringLiteral][0].image
+            };
         }
 
         return {
             name: ctx[TokenType.NodeAttribute][0].image,
-            value: { type: type, image: image }
+            value: value
         };
     }
 }
@@ -57,9 +61,9 @@ export interface HaikuNodeAst {
     attributes: {
         name: string;
         value: {
-            type: TokenType.DataBinding | TokenType.StringLiteral | 'none';
-            image: string | undefined;
-        };
+            type: TokenType.DataBinding | TokenType.StringLiteral;
+            image: string;
+        } | undefined;
     }[];
     children: HaikuNodeAst[];
 }
