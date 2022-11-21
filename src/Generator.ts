@@ -66,14 +66,16 @@ export class Generator {
         return `${type} ${name}()\n${statements.map(s => `\t${s}`).join('\n')}\nend ${type}`;
     }
 
-    private createObject(node: HaikuNodeAst): string[] {
-        const attributes = node.attributes.filter(a => a.value && !a.name.startsWith('on:'));
+    private createObject(node: HaikuNodeAst, parentIdentifier: string): string[] {
+        const attributes = node.attributes.filter(
+            a => a.value && !a.name.startsWith('on:') && !a.name.startsWith(':')
+        );
         const observableAttributes = node.attributes.filter(a => a.value && a.name.startsWith('on:'));
         const specialAttributes = node.attributes.filter(a => !a.value);
 
         const identifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
 
-        const result = [
+        const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
         ];
 
@@ -86,32 +88,38 @@ export class Generator {
                 } else if (attribute.value.type === TokenType.DataBinding) {
                     value = attribute.value.image.substring(1, attribute.value.image.length - 1);
                 }
-
-                result.push(`${identifier}.${attribute.name} = ${value}`);
+                statements.push(`${identifier}.${attribute.name} = ${value}`);
             }
         }
 
         // Handle observable attributes
         for (const observable of observableAttributes) {
-            result.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
+            statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
         }
 
         // Handle special attributes
         for (const sAttribute of specialAttributes) {
             if (sAttribute.name === ':focus' && !this.someNodeHasFocus) {
-                result.push(`${identifier}.setFocus(true)`);
+                statements.push(`${identifier}.setFocus(true)`);
                 this.someNodeHasFocus = true;
             }
         }
 
-        return result;
+        // Handle children
+        for (const child of node.children) {
+            statements.push(...this.createObject(child, identifier));
+        }
+
+        // Mount the node
+        statements.push(`${parentIdentifier}.appendChild(${identifier})`);
+
+        return statements;
     }
 
     private createAndMountStatements(): string[] {
         const initStatements: string[] = [];
         for (const node of this.ast.nodes) {
-            initStatements.push(...this.createObject(node));
-            initStatements.push(`m.top.appendChild(${node.name.toLowerCase()})`);
+            initStatements.push(...this.createObject(node, 'm.top'));
         }
         return initStatements;
     }

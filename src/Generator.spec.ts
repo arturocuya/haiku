@@ -68,7 +68,7 @@ end sub`;
 \tm.button = CreateObject("roSGNode", "Button")
 \tm.button.text = "press"
 \tm.button.observeField("buttonSelected", "handleButton")
-\tm.top.appendChild(button)
+\tm.top.appendChild(m.button)
 end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
@@ -118,6 +118,29 @@ end function`;
 \tm.top.appendChild(button)
 \tlabel = CreateObject("roSGNode", "Label")
 \tm.top.appendChild(label)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
+
+    it('handles nested node children', () => {
+        const input = `
+        <Label text="hello"/>
+        <Group>
+            <Poster src="pkg:/images/greet.png"/>
+        </Group>
+        `;
+
+        const expected = `sub init()
+\tlabel = CreateObject("roSGNode", "Label")
+\tlabel.text = "hello"
+\tm.top.appendChild(label)
+\tgroup = CreateObject("roSGNode", "Group")
+\tposter = CreateObject("roSGNode", "Poster")
+\tposter.src = "pkg:/images/greet.png"
+\tgroup.appendChild(poster)
+\tm.top.appendChild(group)
 end sub`;
 
         const actual = Generator.generate(input);
