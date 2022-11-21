@@ -214,4 +214,61 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('handles expressions inside string literal attribute values', () => {
+        const input = `
+        <Label text={earthMessage} />
+        <Label text="Hello {coolPlanet} that is not {world}" />
+        <Label text="{coolPlanet}" />
+        <Label text="{coolPlanet} {world} yeaa" />
+        <Label text="{a}{b}{c} letters" />
+        <Label text="escaped \\{curlys\\} will not be detected {butThis} will" />
+        <Label text="empty curlys {}are ignored{}{}{} {butThis} is not" />
+        `;
+
+        const expected = `sub init()
+\tlabel = CreateObject("roSGNode", "Label")
+\tlabel.text = earthMessage
+\tm.top.appendChild(label)
+\tlabel1 = CreateObject("roSGNode", "Label")
+\ttext = "Hello "
+\ttext += coolPlanet
+\ttext += " that is not "
+\ttext += world
+\tlabel1.text = text
+\tm.top.appendChild(label1)
+\tlabel2 = CreateObject("roSGNode", "Label")
+\tlabel2.text = coolPlanet
+\tm.top.appendChild(label2)
+\tlabel3 = CreateObject("roSGNode", "Label")
+\ttext1 = coolPlanet
+\ttext1 += " "
+\ttext1 += world
+\ttext1 += " yeaa"
+\tlabel3.text = text1
+\tm.top.appendChild(label3)
+\tlabel4 = CreateObject("roSGNode", "Label")
+\ttext2 = a
+\ttext2 += b
+\ttext2 += c
+\ttext2 += " letters"
+\tlabel4.text = text2
+\tm.top.appendChild(label4)
+\tlabel5 = CreateObject("roSGNode", "Label")
+\ttext3 = "escaped {curlys} will not be detected "
+\ttext3 += butThis
+\ttext3 += " will"
+\tlabel5.text = text3
+\tm.top.appendChild(label5)
+\tlabel6 = CreateObject("roSGNode", "Label")
+\ttext4 = "empty curlys are ignored "
+\ttext4 += butThis
+\ttext4 += " is not"
+\tlabel6.text = text4
+\tm.top.appendChild(label6)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });

@@ -39,9 +39,10 @@ const StringLiteral = createToken({
     pattern: /"[^"]*"/
 });
 
+export const DataBindingPattern = /\{[^}]+\}/;
 const DataBinding = createToken({
     name: TokenType.DataBinding,
-    pattern: /\{[^}]*\}/
+    pattern: DataBindingPattern
 });
 
 const Script = createToken({

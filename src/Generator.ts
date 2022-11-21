@@ -29,6 +29,9 @@ interface GeneratedScopeInfo {
     identifierCount: Record<string, number>;
 }
 
+const ExpressionInStringLiteralPattern = /(?<!\\)\{[^}]+(?<!\\)\}/;
+const ExpressionInStringLiteralPatternGlobal = /(?<!\\)\{([^}]+)(?<!\\)\}/g;
+
 export class Generator {
     ast: HaikuAst;
     someNodeHasFocus: boolean;
@@ -73,6 +76,11 @@ export class Generator {
         }
     }
 
+    private getNextIdentifierInScope(scope: GeneratedScope, identifier: string): string {
+        const identifierCount = this.addIndentifierToScope(scope, identifier);
+        return identifierCount > 1 ? `${identifier}${identifierCount - 1}` : identifier;
+    }
+
     generateBrs(): string {
         let brs = '';
 
@@ -102,6 +110,45 @@ export class Generator {
         return `${type} ${name}()\n${statements.map(s => `\t${s}`).join('\n')}\nend ${type}`;
     }
 
+    private cleanCurlysFromStringLiteral(str: string): string {
+        return str.replaceAll('\\{', '{')
+            .replaceAll('\\}', '}')
+            .replaceAll('{}', '');
+    }
+
+    private handleStringLiteralAttribute(scope: GeneratedScope, identifier: string, attributeName: string, stringLiteralImage: string): string[] {
+        const statements: string[] = [];
+        const expressionMatches = Array.from(stringLiteralImage.matchAll(ExpressionInStringLiteralPatternGlobal));
+        if (expressionMatches.length > 0) {
+            // Remove `"` from the start and end of the string
+            const trimmedImage = stringLiteralImage.substring(1, stringLiteralImage.length - 1);
+            const literals = trimmedImage
+                .split(ExpressionInStringLiteralPattern).map(l => `"${l}"`)
+                .map(this.cleanCurlysFromStringLiteral);
+
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const expressions = expressionMatches.map(m => m[0]!).map(e => e.substring(1, e.length - 1));
+            const assignments = alternateArrayValues(literals, expressions).filter(a => a !== '' && a !== '""');
+
+            if (assignments.length > 1) {
+                const attributeIdentifier = this.getNextIdentifierInScope(scope, attributeName);
+                let assigned = false;
+                for (const assignment of assignments) {
+                    statements.push(`${attributeIdentifier} ${assigned ? '+=' : '='} ${assignment}`);
+                    assigned = true;
+                }
+                statements.push(`${identifier}.${attributeName} = ${attributeIdentifier}`);
+            } else {
+                statements.push(`${identifier}.${attributeName} = ${assignments[0]}`);
+            }
+        } else {
+            statements.push(
+                `${identifier}.${attributeName} = ${this.cleanCurlysFromStringLiteral(stringLiteralImage)}`
+            );
+        }
+        return statements;
+    }
+
     private createObject(node: HaikuNodeAst, parentIdentifier: string): string[] {
         const attributes = node.attributes.filter(
             a => a.value && !a.name.startsWith('on:') && !a.name.startsWith(':')
@@ -111,8 +158,7 @@ export class Generator {
 
         const baseIdentifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
 
-        const identifierCount = this.addIndentifierToScope(GeneratedScope.Init, baseIdentifier);
-        const identifier = identifierCount > 1 ? `${baseIdentifier}${identifierCount - 1}` : baseIdentifier;
+        const identifier = this.getNextIdentifierInScope(GeneratedScope.Init, baseIdentifier);
 
         const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
@@ -123,11 +169,11 @@ export class Generator {
             if (attribute.value) {
                 let value = '';
                 if (attribute.value.type === TokenType.StringLiteral) {
-                    value = attribute.value.image;
+                    statements.push(...this.handleStringLiteralAttribute(GeneratedScope.Init, identifier, attribute.name, attribute.value.image));
                 } else if (attribute.value.type === TokenType.DataBinding) {
                     value = attribute.value.image.substring(1, attribute.value.image.length - 1);
+                    statements.push(`${identifier}.${attribute.name} = ${value}`);
                 }
-                statements.push(`${identifier}.${attribute.name} = ${value}`);
             }
         }
 
@@ -210,4 +256,20 @@ export class Generator {
             .map((s) => brsStatementToString(s, brsTranspileState));
         return { statements: statements, callables: callables };
     }
+}
+
+// Helper method
+function alternateArrayValues(arr1: string[], arr2: string[]): string[] {
+    const result: string[] = [];
+    for (let i = 0; i < Math.max(arr1.length, arr2.length); i++) {
+        if (arr1[i]) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result.push(arr1[i]!);
+        }
+        if (arr2[i]) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result.push(arr2[i]!);
+        }
+    }
+    return result;
 }
