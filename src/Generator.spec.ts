@@ -189,20 +189,26 @@ end sub`;
             <script>
                 label = "foo"
                 label = "bar"
+                m.button = "baz"
             </script>
             <Label text="hello"/>
             <Label text="world"/>
+            <Button on:buttonSelected="magic"/>
         `;
 
         const expected = `sub init()
 \tlabel = "foo"
 \tlabel = "bar"
+\tm.button = "baz"
 \tlabel1 = CreateObject("roSGNode", "Label")
 \tlabel1.text = "hello"
 \tm.top.appendChild(label1)
 \tlabel2 = CreateObject("roSGNode", "Label")
 \tlabel2.text = "world"
 \tm.top.appendChild(label2)
+\tm.button1 = CreateObject("roSGNode", "Button")
+\tm.button1.observeField("buttonSelected", "magic")
+\tm.top.appendChild(m.button1)
 end sub`;
 
         const actual = Generator.generate(input);

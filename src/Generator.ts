@@ -1,5 +1,6 @@
 import type {
     AssignmentStatement as BrsAssignmentStatement,
+    DottedSetStatement,
     Statement as BrsStatement
 } from 'brighterscript';
 import {
@@ -176,6 +177,26 @@ export class Generator {
             .map((s) => {
                 if (s.constructor.name === 'AssignmentStatement') {
                     scriptIdentifiers.add((s as BrsAssignmentStatement).name.text);
+                } else if (s.constructor.name === 'DottedSetStatement') {
+                    let fullIdentifier = (s as DottedSetStatement).name.text;
+                    let statement: any = s;
+
+                    // Climb the dotted set statement
+                    while (statement.obj.constructor.name === 'DottedSetStatement') {
+                        fullIdentifier = `${statement.object.text}.${fullIdentifier}`;
+                        statement = statement.obj;
+                    }
+                    if (statement.obj.constructor.name === 'VariableExpression') {
+                        fullIdentifier = `${statement.obj.name.text}.${fullIdentifier}`;
+                    }
+
+                    // Only add the beginning of the identifier (m.something).
+                    // Longer identifiers (m.something.else) may appear when the base
+                    // identifier (m.something) is in the parent component.
+                    if (fullIdentifier.startsWith('m.') && !fullIdentifier.startsWith('m.top.')) {
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        scriptIdentifiers.add(`m.${fullIdentifier.split('.')[1]!}`);
+                    }
                 }
                 return brsStatementToString(s, brsTranspileState);
             });
