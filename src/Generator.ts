@@ -1,4 +1,5 @@
 import type {
+    AssignmentStatement as BrsAssignmentStatement,
     Statement as BrsStatement
 } from 'brighterscript';
 import {
@@ -18,9 +19,19 @@ function brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTra
     return transpiled.map(t => t.toString()).join('');
 }
 
+enum GeneratedScope {
+    File = 'File',
+    Init = 'Init'
+}
+
+interface GeneratedScopeInfo {
+    identifierCount: Record<string, number>;
+}
+
 export class Generator {
     ast: HaikuAst;
     someNodeHasFocus: boolean;
+    scopes: Record<string, GeneratedScopeInfo>;
 
     static generate(program: string): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
@@ -30,6 +41,7 @@ export class Generator {
     generate(ast: HaikuAst): { xml: string; brs: string } {
         this.ast = ast;
         this.someNodeHasFocus = false;
+        this.scopes = {};
         return {
             xml: this.generateXml(),
             brs: this.generateBrs()
@@ -40,9 +52,32 @@ export class Generator {
         return '';
     }
 
+    private addScope(scope: string) {
+        this.scopes[scope] = { identifierCount: {} };
+    }
+
+    private addIndentifierToScope(scope: GeneratedScope, identifier: string): number {
+        if (!this.scopes[scope]) {
+            this.addScope(scope);
+        }
+        if (!this.scopes[scope]?.identifierCount.hasOwnProperty(identifier)) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.scopes[scope]!.identifierCount[identifier] = 0;
+            return 0;
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.scopes[scope]!.identifierCount[identifier] += 1;
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return this.scopes[scope]!.identifierCount[identifier]!;
+        }
+    }
+
     generateBrs(): string {
         let brs = '';
 
+        // The script statements should always be processed before the nodes
+        // to ensure there are no name collisions between script variables
+        // and node identifiers
         const { statements: scriptStatements, callables: scriptCallables } = this.scriptStatements();
 
         const initStatements = [
@@ -73,7 +108,10 @@ export class Generator {
         const observableAttributes = node.attributes.filter(a => a.value && a.name.startsWith('on:'));
         const specialAttributes = node.attributes.filter(a => !a.value);
 
-        const identifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
+        const baseIdentifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
+
+        const identifierCount = this.addIndentifierToScope(GeneratedScope.Init, baseIdentifier);
+        const identifier = identifierCount > 0 ? `${baseIdentifier}${identifierCount}` : baseIdentifier;
 
         const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
@@ -131,9 +169,21 @@ export class Generator {
             new BrsFile('', '', new BrsProgram({}))
         );
 
+        const scriptIdentifiers = new Set<string>();
+
         const statements = brsParser.statements
             .filter(s => s.constructor.name !== 'FunctionStatement')
-            .map((s) => brsStatementToString(s, brsTranspileState));
+            .map((s) => {
+                if (s.constructor.name === 'AssignmentStatement') {
+                    scriptIdentifiers.add((s as BrsAssignmentStatement).name.text);
+                }
+                return brsStatementToString(s, brsTranspileState);
+            });
+
+        for (const identifier of scriptIdentifiers) {
+            this.addIndentifierToScope(GeneratedScope.Init, identifier);
+        }
+
         const callables = brsParser.statements
             .filter(s => s.constructor.name === 'FunctionStatement')
             .map((s) => brsStatementToString(s, brsTranspileState));

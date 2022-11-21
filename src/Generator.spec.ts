@@ -146,4 +146,64 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('prevents collisions between node name indentifiers', () => {
+        const input = `
+        <Label text="hello"/>
+        <Label text="world"/>
+        <Group>
+            <Label text="lvl1"/>
+            <Group>
+                <Label text="lvl2"/>
+            </Group>
+        </Group>
+        `;
+
+        const expected = `sub init()
+\tlabel = CreateObject("roSGNode", "Label")
+\tlabel.text = "hello"
+\tm.top.appendChild(label)
+\tlabel1 = CreateObject("roSGNode", "Label")
+\tlabel1.text = "world"
+\tm.top.appendChild(label1)
+\tgroup = CreateObject("roSGNode", "Group")
+\tlabel2 = CreateObject("roSGNode", "Label")
+\tlabel2.text = "lvl1"
+\tgroup.appendChild(label2)
+\tgroup1 = CreateObject("roSGNode", "Group")
+\tlabel3 = CreateObject("roSGNode", "Label")
+\tlabel3.text = "lvl2"
+\tgroup1.appendChild(label3)
+\tgroup.appendChild(group1)
+\tm.top.appendChild(group)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
+
+    it('prevents collisions between node names and identifiers from script', () => {
+        const input = `
+            <script>
+                label = "foo"
+                label = "bar"
+            </script>
+            <Label text="hello"/>
+            <Label text="world"/>
+        `;
+
+        const expected = `sub init()
+\tlabel = "foo"
+\tlabel = "bar"
+\tlabel1 = CreateObject("roSGNode", "Label")
+\tlabel1.text = "hello"
+\tm.top.appendChild(label1)
+\tlabel2 = CreateObject("roSGNode", "Label")
+\tlabel2.text = "world"
+\tm.top.appendChild(label2)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });
