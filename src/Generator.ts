@@ -1,6 +1,7 @@
 import type {
     AssignmentStatement as BrsAssignmentStatement,
-    DottedSetStatement,
+    DottedSetStatement as BrsDottedSetStatement,
+    FunctionStatement as BrsFunctionStatement,
     Statement as BrsStatement
 } from 'brighterscript';
 import {
@@ -15,11 +16,6 @@ import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
 
-function brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTranspileState) {
-    const transpiled = statement.transpile(brsTranspileState);
-    return transpiled.map(t => t.toString()).join('');
-}
-
 enum GeneratedScope {
     File = 'File',
     Init = 'Init'
@@ -29,6 +25,11 @@ interface GeneratedScopeInfo {
     identifierCount: Record<string, number>;
 }
 
+interface GeneratorResult {
+    statements: string[];
+    callables: string[];
+}
+
 const ExpressionInStringLiteralPattern = /(?<!\\)\{[^}]+(?<!\\)\}/;
 const ExpressionInStringLiteralPatternGlobal = /(?<!\\)\{([^}]+)(?<!\\)\}/g;
 
@@ -36,6 +37,7 @@ export class Generator {
     ast: HaikuAst;
     someNodeHasFocus: boolean;
     scopes: Record<string, GeneratedScopeInfo>;
+    brsTranspileState: BrsTranspileState;
 
     static generate(program: string): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
@@ -46,6 +48,9 @@ export class Generator {
         this.ast = ast;
         this.someNodeHasFocus = false;
         this.scopes = {};
+        this.brsTranspileState = new BrsTranspileState(
+            new BrsFile('', '', new BrsProgram({}))
+        );
         return {
             xml: this.generateXml(),
             brs: this.generateBrs()
@@ -87,12 +92,20 @@ export class Generator {
         // The script statements should always be processed before the nodes
         // to ensure there are no name collisions between script variables
         // and node identifiers
-        const { statements: scriptStatements, callables: scriptCallables } = this.scriptStatements();
+        const {
+            statements: scriptStatements,
+            callables: scriptCallables
+        } = this.scriptStatements();
+
+        const {
+            statements: cmStatements,
+            callables: cmCallables
+        } = this.createAndMountStatements();
 
         const initStatements = [
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ...scriptStatements,
-            ...this.createAndMountStatements()
+            ...cmStatements
         ];
 
         if (initStatements.length > 0) {
@@ -101,6 +114,10 @@ export class Generator {
 
         if (scriptCallables && scriptCallables.length > 0) {
             brs += '\n' + scriptCallables.join('\n');
+        }
+
+        if (cmCallables && cmCallables.length > 0) {
+            brs += '\n' + cmCallables.join('\n');
         }
 
         return brs;
@@ -116,7 +133,12 @@ export class Generator {
             .replaceAll('{}', '');
     }
 
-    private handleStringLiteralAttribute(scope: GeneratedScope, identifier: string, attributeName: string, stringLiteralImage: string): string[] {
+    private handleStringLiteralAttribute(
+        scope: GeneratedScope,
+        identifier: string,
+        attributeName: string,
+        stringLiteralImage: string
+    ): string[] {
         const statements: string[] = [];
         const expressionMatches = Array.from(stringLiteralImage.matchAll(ExpressionInStringLiteralPatternGlobal));
         if (expressionMatches.length > 0) {
@@ -149,7 +171,7 @@ export class Generator {
         return statements;
     }
 
-    private createObject(node: HaikuNodeAst, parentIdentifier: string): string[] {
+    private createObject(node: HaikuNodeAst, parentIdentifier: string): GeneratorResult {
         const attributes = node.attributes.filter(
             a => a.value && !a.name.startsWith('on:') && !a.name.startsWith(':')
         );
@@ -163,6 +185,8 @@ export class Generator {
         const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
         ];
+
+        const callables: string[] = [];
 
         // Handle regular attributes
         for (const attribute of attributes) {
@@ -179,7 +203,29 @@ export class Generator {
 
         // Handle observable attributes
         for (const observable of observableAttributes) {
-            statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
+            if (observable.value) {
+                if (observable.value.type === TokenType.StringLiteral) {
+                    statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
+                } else if (observable.value.type === TokenType.DataBinding) {
+                    // TODO: How to get anon function statements?
+                    // possible answer: use m.obs = `source` and get `DottedSetStatement.value` to access the anon function
+
+                    // const source = 'm.obs = ' + observable.value.image
+                    //     .substring(1, observable.value.image.length - 1);
+                    // const brsParseResult = this.brsParse(source);
+                    // const callable = brsParseResult.callables[0];
+                    // const callableIdentifier = brsParseResult.callableIdentifiers
+                    //     .values().next().value;
+
+                    // if (callable !== undefined && callableIdentifier !== undefined) {
+                    //     this.addIndentifierToScope(GeneratedScope.File, callableIdentifier);
+                    //     const finalCallableIdentifier = this.getNextIdentifierInScope(GeneratedScope.File, callableIdentifier);
+
+                    //     callables.push(callable.replace(callableIdentifier, finalCallableIdentifier));
+                    //     statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", "${finalCallableIdentifier})"`);
+                    // }
+                }
+            }
         }
 
         // Handle special attributes
@@ -192,39 +238,70 @@ export class Generator {
 
         // Handle children
         for (const child of node.children) {
-            statements.push(...this.createObject(child, identifier));
+            const { statements: childStatements, callables: childCallables } = this.createObject(child, identifier);
+            statements.push(...childStatements);
+            callables.push(...childCallables);
         }
 
         // Mount the node
         statements.push(`${parentIdentifier}.appendChild(${identifier})`);
 
-        return statements;
+        return { statements: statements, callables: callables };
     }
 
-    private createAndMountStatements(): string[] {
-        const initStatements: string[] = [];
+    private createAndMountStatements(): GeneratorResult {
+        const statements: string[] = [];
+        const callables: string[] = [];
+
         for (const node of this.ast.nodes) {
-            initStatements.push(...this.createObject(node, 'm.top'));
+            const {
+                statements: objStatements,
+                callables: objCallables
+            } = this.createObject(node, 'm.top');
+
+            statements.push(...objStatements);
+            callables.push(...objCallables);
         }
-        return initStatements;
+        return { statements: statements, callables: callables };
     }
 
-    private scriptStatements(): { statements: string[]; callables: string[] } {
-        const { tokens: brsTokens } = BrsLexer.scan(this.ast.script);
-        const brsParser = BrsParser.parse(brsTokens);
-        const brsTranspileState = new BrsTranspileState(
-            new BrsFile('', '', new BrsProgram({}))
-        );
+    private scriptStatements(): GeneratorResult {
+        const brsParseResult = this.brsParse(this.ast.script);
 
-        const scriptIdentifiers = new Set<string>();
+        for (const identifier of brsParseResult.statementIdentifiers) {
+            this.addIndentifierToScope(GeneratedScope.Init, identifier);
+        }
+
+        for (const identifier of brsParseResult.callableIdentifiers) {
+            this.addIndentifierToScope(GeneratedScope.Init, identifier);
+        }
+
+        return {
+            statements: brsParseResult.statements,
+            callables: brsParseResult.callables
+        };
+    }
+
+    private brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTranspileState) {
+        const transpiled = statement.transpile(brsTranspileState);
+        return transpiled.map(t => t.toString()).join('');
+    }
+
+    private brsParse(source: string):
+    GeneratorResult & { statementIdentifiers: Set<string>; callableIdentifiers: Set<string> } {
+        const statementIdentifiers = new Set<string>();
+        const callableIdentifiers = new Set<string>();
+
+        const { tokens: brsTokens } = BrsLexer.scan(source);
+        const brsParser = BrsParser.parse(brsTokens);
 
         const statements = brsParser.statements
             .filter(s => s.constructor.name !== 'FunctionStatement')
             .map((s) => {
                 if (s.constructor.name === 'AssignmentStatement') {
-                    scriptIdentifiers.add((s as BrsAssignmentStatement).name.text);
+                    statementIdentifiers.add((s as BrsAssignmentStatement).name.text);
                 } else if (s.constructor.name === 'DottedSetStatement') {
-                    let fullIdentifier = (s as DottedSetStatement).name.text;
+                    let fullIdentifier = (s as BrsDottedSetStatement).name.text;
                     let statement: any = s;
 
                     // Climb the dotted set statement
@@ -241,20 +318,25 @@ export class Generator {
                     // identifier (m.something) is in the parent component.
                     if (fullIdentifier.startsWith('m.') && !fullIdentifier.startsWith('m.top.')) {
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        scriptIdentifiers.add(`m.${fullIdentifier.split('.')[1]!}`);
+                        statementIdentifiers.add(`m.${fullIdentifier.split('.')[1]!}`);
                     }
                 }
-                return brsStatementToString(s, brsTranspileState);
+                return this.brsStatementToString(s, this.brsTranspileState);
             });
-
-        for (const identifier of scriptIdentifiers) {
-            this.addIndentifierToScope(GeneratedScope.Init, identifier);
-        }
 
         const callables = brsParser.statements
             .filter(s => s.constructor.name === 'FunctionStatement')
-            .map((s) => brsStatementToString(s, brsTranspileState));
-        return { statements: statements, callables: callables };
+            .map((s): string => {
+                callableIdentifiers.add((s as BrsFunctionStatement).name.text);
+                return this.brsStatementToString(s, this.brsTranspileState);
+            });
+
+        return {
+            statements: statements,
+            callables: callables,
+            statementIdentifiers: statementIdentifiers,
+            callableIdentifiers: callableIdentifiers
+        };
     }
 }
 
