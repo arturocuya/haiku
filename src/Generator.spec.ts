@@ -37,6 +37,7 @@ end sub`;
             x = foo(1,2)
             m.y = 2
             print "hello"
+            m.cool = "beans"
             m.foo = sub()
                 print "foo"
             end sub
@@ -48,6 +49,7 @@ end sub`;
 \tx = foo(1, 2)
 \tm.y = 2
 \tprint "hello"
+\tm.cool = "beans"
 \tm.foo = sub()
     print "foo"
 end sub

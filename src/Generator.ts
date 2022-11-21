@@ -62,8 +62,8 @@ export class Generator {
         }
         if (!this.scopes[scope]?.identifierCount.hasOwnProperty(identifier)) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.scopes[scope]!.identifierCount[identifier] = 0;
-            return 0;
+            this.scopes[scope]!.identifierCount[identifier] = 1;
+            return 1;
         } else {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.scopes[scope]!.identifierCount[identifier] += 1;
@@ -111,7 +111,7 @@ export class Generator {
         const baseIdentifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
 
         const identifierCount = this.addIndentifierToScope(GeneratedScope.Init, baseIdentifier);
-        const identifier = identifierCount > 0 ? `${baseIdentifier}${identifierCount}` : baseIdentifier;
+        const identifier = identifierCount > 1 ? `${baseIdentifier}${identifierCount - 1}` : baseIdentifier;
 
         const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
