@@ -271,4 +271,33 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it('handles inline callables on observable attributes', () => {
+        const input = `
+            <Button on:buttonSelected={sub ()
+                count += 1
+            end sub} />
+            <Button on:buttonSelected={function ()
+                chill = "out"
+            end function} />
+        `;
+
+        const expected = `sub init()
+\tm.button = CreateObject("roSGNode", "Button")
+\tm.button.observeField("buttonSelected", "__handle_button_buttonSelected")
+\tm.top.appendChild(m.button)
+\tm.button1 = CreateObject("roSGNode", "Button")
+\tm.button1.observeField("buttonSelected", "__handle_button1_buttonSelected")
+\tm.top.appendChild(m.button1)
+end sub
+sub __handle_button_buttonSelected()
+\tcount += 1
+end sub
+function __handle_button1_buttonSelected()
+\tchill = "out"
+end function`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });

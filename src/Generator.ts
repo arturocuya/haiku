@@ -203,27 +203,32 @@ export class Generator {
 
         // Handle observable attributes
         for (const observable of observableAttributes) {
+            const observedField = observable.name.replace('on:', '');
             if (observable.value) {
                 if (observable.value.type === TokenType.StringLiteral) {
-                    statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", ${observable.value?.image})`);
+                    // For string literals, create observeField statements with image as-is
+                    statements.push(`${identifier}.observeField("${observedField}", ${observable.value?.image})`);
                 } else if (observable.value.type === TokenType.DataBinding) {
-                    // TODO: How to get anon function statements?
-                    // possible answer: use m.obs = `source` and get `DottedSetStatement.value` to access the anon function
+                    // For data bindings, we need to create a function to be inserted into the file,
+                    // then use the function identifier as the observeField callback.
 
-                    // const source = 'm.obs = ' + observable.value.image
-                    //     .substring(1, observable.value.image.length - 1);
-                    // const brsParseResult = this.brsParse(source);
-                    // const callable = brsParseResult.callables[0];
-                    // const callableIdentifier = brsParseResult.callableIdentifiers
-                    //     .values().next().value;
+                    // Parse the data binding to get the inner statements
+                    const source = observable.value.image
+                        .substring(1, observable.value.image.length - 1);
+                    const brsParseResult = this.brsParse(source);
 
-                    // if (callable !== undefined && callableIdentifier !== undefined) {
-                    //     this.addIndentifierToScope(GeneratedScope.File, callableIdentifier);
-                    //     const finalCallableIdentifier = this.getNextIdentifierInScope(GeneratedScope.File, callableIdentifier);
+                    // Create the callback identifier
+                    const baseHandlerIdentifier = `__handle_${identifier.replace('m.', '')}_${observedField}`;
+                    const handlerIdentifier = this.getNextIdentifierInScope(GeneratedScope.File, baseHandlerIdentifier);
 
-                    //     callables.push(callable.replace(callableIdentifier, finalCallableIdentifier));
-                    //     statements.push(`${identifier}.observeField("${observable.name.replace('on:', '')}", "${finalCallableIdentifier})"`);
-                    // }
+                    const callableStatement = this.callable(
+                        source.trim().startsWith('sub') ? 'sub' : 'function',
+                        handlerIdentifier,
+                        brsParseResult.rawStatements.map((s) => this.brsStatementToString(s))
+                    );
+
+                    statements.push(`${identifier}.observeField("${observedField}", "${handlerIdentifier}")`);
+                    callables.push(callableStatement);
                 }
             }
         }
@@ -282,13 +287,13 @@ export class Generator {
         };
     }
 
-    private brsStatementToString(statement: BrsStatement, brsTranspileState: BrsTranspileState) {
-        const transpiled = statement.transpile(brsTranspileState);
+    private brsStatementToString(statement: BrsStatement) {
+        const transpiled = statement.transpile(this.brsTranspileState);
         return transpiled.map(t => t.toString()).join('');
     }
 
     private brsParse(source: string):
-    GeneratorResult & { statementIdentifiers: Set<string>; callableIdentifiers: Set<string> } {
+    GeneratorResult & { statementIdentifiers: Set<string>; callableIdentifiers: Set<string>; rawStatements: BrsStatement[] } {
         const statementIdentifiers = new Set<string>();
         const callableIdentifiers = new Set<string>();
 
@@ -321,21 +326,22 @@ export class Generator {
                         statementIdentifiers.add(`m.${fullIdentifier.split('.')[1]!}`);
                     }
                 }
-                return this.brsStatementToString(s, this.brsTranspileState);
+                return this.brsStatementToString(s);
             });
 
         const callables = brsParser.statements
             .filter(s => s.constructor.name === 'FunctionStatement')
             .map((s): string => {
                 callableIdentifiers.add((s as BrsFunctionStatement).name.text);
-                return this.brsStatementToString(s, this.brsTranspileState);
+                return this.brsStatementToString(s);
             });
 
         return {
             statements: statements,
             callables: callables,
             statementIdentifiers: statementIdentifiers,
-            callableIdentifiers: callableIdentifiers
+            callableIdentifiers: callableIdentifiers,
+            rawStatements: brsParser.statements
         };
     }
 }
