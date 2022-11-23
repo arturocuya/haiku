@@ -151,14 +151,14 @@ Let's implement the "Hello world" of reactive applications: A button that update
 
 ```
 <script>
-    count = 0
+    m.count = 0
     sub increment()
-        count += 1
+        m.count += 1
     end sub
 </script>
 <Button
     :focus="true"
-    text="Haiku has saved you {count} {count === 1 ? "line" : "lines"} of code"
+    text="Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code"
     on:buttonSelected="increment"
 />
 ```

@@ -8,3 +8,4 @@ dist
 build
 bsconfig.json
 out
+test-project
