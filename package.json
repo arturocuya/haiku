@@ -10,7 +10,8 @@
     "test": "nyc ts-mocha src/**/*.spec.ts",
     "test:nocover": "ts-mocha src/**/*.spec.ts",
     "lint": "eslint src/**/",
-    "lint:fix": "eslint src/**/ --fix"
+    "lint:fix": "eslint src/**/ --fix",
+    "build:test-project": "rm -rf build; cp -r test-project/src build && ts-node scripts/replace-haiku-files.ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.3",

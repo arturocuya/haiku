@@ -6,6 +6,41 @@
             "name": "Test (No coverage)",
             "request": "launch",
             "type": "node-terminal"
+        },
+        {
+            "type": "brightscript",
+            "request": "launch",
+            "stopOnEntry": false,
+            "enableDebuggerAutoRecovery": false,
+            "stopDebuggerOnAppExit": false,
+            "rootDir": "${workspaceFolder}/build",
+            "preLaunchTask": "build-test-project",
+            "files": [
+                "source/**/*",
+                "components/**/*",
+                "images/**/*",
+                "fonts/**/*",
+                "manifest"
+            ],
+            "name": "Build & Launch test-project",
+            "injectRdbOnDeviceComponent": true
+        },
+        {
+            "type": "brightscript",
+            "request": "launch",
+            "stopOnEntry": false,
+            "enableDebuggerAutoRecovery": false,
+            "stopDebuggerOnAppExit": false,
+            "rootDir": "${workspaceFolder}/build",
+            "files": [
+                "source/**/*",
+                "components/**/*",
+                "images/**/*",
+                "fonts/**/*",
+                "manifest"
+            ],
+            "name": "Launch test-project (no build)",
+            "injectRdbOnDeviceComponent": true
         }
 	]
 }

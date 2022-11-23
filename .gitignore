@@ -5,3 +5,6 @@ node_modules/
 playground.ts
 playground.js
 dist
+build
+bsconfig.json
+out
