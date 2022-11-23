@@ -38,13 +38,14 @@ export class Generator {
     someNodeHasFocus: boolean;
     scopes: Record<string, GeneratedScopeInfo>;
     brsTranspileState: BrsTranspileState;
+    publicFunctions: Set<string>;
 
-    static generate(program: string): { xml: string; brs: string } {
+    static generate(program: string, componentName = 'HaikuComponent'): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
-        return new Generator().generate(ast);
+        return new Generator().generate(ast, componentName);
     }
 
-    generate(ast: HaikuAst): { xml: string; brs: string } {
+    generate(ast: HaikuAst, componentName: string): { xml: string; brs: string } {
         this.ast = ast;
         this.someNodeHasFocus = false;
         this.scopes = {};
@@ -57,8 +58,15 @@ export class Generator {
         };
     }
 
-    generateXml(): string {
-        return '';
+    generateXml(componentName: string): string {
+        const publicFunctions = Array.from(this.publicFunctions);
+        const _interface = publicFunctions.length > 0
+            ? `\n\t<interface>\n${publicFunctions.map(f => `\t\t<function name="${f}" />`).join('\n')}\n\t</interface>`
+            : '';
+
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<component name="${componentName}" extends="Group">
+\t<script type="text/brightscript" uri="${componentName}.brs"/>${_interface}\n</component>`;
     }
 
     private addScope(scope: string) {
@@ -178,9 +186,7 @@ export class Generator {
         const observableAttributes = node.attributes.filter(a => a.value && a.name.startsWith('on:'));
         const specialAttributes = node.attributes.filter(a => !a.value);
 
-        const baseIdentifier = observableAttributes.length > 0 ? `m.${node.name.toLowerCase()}` : node.name.toLowerCase();
-
-        const identifier = this.getNextIdentifierInScope(GeneratedScope.Init, baseIdentifier);
+        const identifier = this.getNextIdentifierInScope(GeneratedScope.Init, node.name.toLowerCase());
 
         const statements = [
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
@@ -188,14 +194,20 @@ export class Generator {
 
         const callables: string[] = [];
 
+        let nodeIdImage: string | undefined;
+
         // Handle regular attributes
         for (const attribute of attributes) {
             if (attribute.value) {
-                let value = '';
                 if (attribute.value.type === TokenType.StringLiteral) {
-                    statements.push(...this.handleStringLiteralAttribute(GeneratedScope.Init, identifier, attribute.name, attribute.value.image));
+                    if (attribute.name === 'id') {
+                        nodeIdImage = attribute.value.image;
+                        statements.push(`${identifier}.${attribute.name} = ${attribute.value.image}`);
+                    } else {
+                        statements.push(...this.handleStringLiteralAttribute(GeneratedScope.Init, identifier, attribute.name, attribute.value.image));
+                    }
                 } else if (attribute.value.type === TokenType.DataBinding) {
-                    value = attribute.value.image.substring(1, attribute.value.image.length - 1);
+                    const value = attribute.value.image.substring(1, attribute.value.image.length - 1);
                     statements.push(`${identifier}.${attribute.name} = ${value}`);
                 }
             }

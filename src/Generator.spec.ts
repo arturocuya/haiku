@@ -4,8 +4,9 @@ import { Generator } from './Generator';
 describe('Generator tests', () => {
     it('handles empty program', () => {
         const input = '';
-        const actual = Generator.generate(input);
-        expect(actual).to.eql({ xml: '', brs: '' });
+        const actual = Generator.generate(input, 'TestComponent');
+        const expectedEmptyXml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component name=\"TestComponent\" extends=\"Group\">\n\t<script type=\"text/brightscript\" uri=\"TestComponent.brs\"/>\n</component>';
+        expect(actual).to.eql({ brs: '', xml: expectedEmptyXml });
     });
 
     it('creates and mounts nodes', () => {
@@ -67,10 +68,10 @@ end sub`;
             on:buttonSelected="handleButton"
         />`;
         const expected = `sub init()
-\tm.button = CreateObject("roSGNode", "Button")
-\tm.button.text = "press"
-\tm.button.observeField("buttonSelected", "handleButton")
-\tm.top.appendChild(m.button)
+\tbutton = CreateObject("roSGNode", "Button")
+\tbutton.text = "press"
+\tbutton.observeField("buttonSelected", "handleButton")
+\tm.top.appendChild(button)
 end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
@@ -189,7 +190,7 @@ end sub`;
             <script>
                 label = "foo"
                 label = "bar"
-                m.button = "baz"
+                button = "baz"
             </script>
             <Label text="hello"/>
             <Label text="world"/>
@@ -199,16 +200,16 @@ end sub`;
         const expected = `sub init()
 \tlabel = "foo"
 \tlabel = "bar"
-\tm.button = "baz"
+\tbutton = "baz"
 \tlabel1 = CreateObject("roSGNode", "Label")
 \tlabel1.text = "hello"
 \tm.top.appendChild(label1)
 \tlabel2 = CreateObject("roSGNode", "Label")
 \tlabel2.text = "world"
 \tm.top.appendChild(label2)
-\tm.button1 = CreateObject("roSGNode", "Button")
-\tm.button1.observeField("buttonSelected", "magic")
-\tm.top.appendChild(m.button1)
+\tbutton1 = CreateObject("roSGNode", "Button")
+\tbutton1.observeField("buttonSelected", "magic")
+\tm.top.appendChild(button1)
 end sub`;
 
         const actual = Generator.generate(input);
@@ -283,12 +284,12 @@ end sub`;
         `;
 
         const expected = `sub init()
-\tm.button = CreateObject("roSGNode", "Button")
-\tm.button.observeField("buttonSelected", "__handle_button_buttonSelected")
-\tm.top.appendChild(m.button)
-\tm.button1 = CreateObject("roSGNode", "Button")
-\tm.button1.observeField("buttonSelected", "__handle_button1_buttonSelected")
-\tm.top.appendChild(m.button1)
+\tbutton = CreateObject("roSGNode", "Button")
+\tbutton.observeField("buttonSelected", "__handle_button_buttonSelected")
+\tm.top.appendChild(button)
+\tbutton1 = CreateObject("roSGNode", "Button")
+\tbutton1.observeField("buttonSelected", "__handle_button1_buttonSelected")
+\tm.top.appendChild(button1)
 end sub
 sub __handle_button_buttonSelected()
 \tcount += 1
