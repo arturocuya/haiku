@@ -107,24 +107,100 @@ end function`;
         expect(actual.brs).to.equal(expected);
     });
 
-    it('handles special node attributes', () => {
-        const input = `
-        <Button
-            text="press"
-            :focus
-        />
-        <Label :focus="true" />`;
-        const expected = `sub init()
+    describe('handles special attribute `:focus`', () => {
+        it('without keeping node in component scope', () => {
+            const input = `
+            <Button
+                text="press"
+                :focus
+            />
+            <Label :focus="true" />`;
+            const expected = `sub init()
 \tbutton = CreateObject("roSGNode", "Button")
 \tbutton.text = "press"
-\tbutton.setFocus(true)
+\tbutton.id = "__initial_focus__"
 \tm.top.appendChild(button)
 \tlabel = CreateObject("roSGNode", "Label")
 \tm.top.appendChild(label)
+end sub
+sub __set_initial_focus__()
+\tnode = m.top.findNode("__initial_focus__")
+\tnode.id = invalid
+\tnode.setFocus(true)
 end sub`;
 
-        const actual = Generator.generate(input);
-        expect(actual.brs).to.equal(expected);
+            const actual = Generator.generate(input);
+            expect(actual.brs).to.equal(expected);
+        });
+
+        it('without keeping node in component scope, when node has id set', () => {
+            const input = `
+            <Button
+                id="btn"
+                text="press"
+                :focus
+            />
+            <Label :focus="true" />`;
+            const expected = `sub init()
+\tbutton = CreateObject("roSGNode", "Button")
+\tbutton.id = "btn"
+\tbutton.text = "press"
+\tm.top.appendChild(button)
+\tlabel = CreateObject("roSGNode", "Label")
+\tm.top.appendChild(label)
+end sub
+sub __set_initial_focus__()
+\tm.top.findNode("btn").setFocus(true)
+end sub`;
+
+            const actual = Generator.generate(input);
+            expect(actual.brs).to.equal(expected);
+        });
+
+        it('generates xml interface correctly', () => {
+            const input = `
+                <Button
+                    text="press"
+                    :focus
+                />
+            `;
+            const expected = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<component name=\"HaikuComponent\" extends=\"Group\">
+\t<script type=\"text/brightscript\" uri=\"HaikuComponent.brs\"/>
+\t<interface>
+\t\t<function name=\"__set_initial_focus__\" />
+\t</interface>
+</component>`;
+
+            const actual = Generator.generate(input);
+            expect(actual.xml).to.equal(expected);
+        });
+
+        // TODO: this is will be supported when reactivity is implemented
+        it.skip('when node is kept in scope', () => {
+            const input = `
+            <Button
+                text="press"
+                :focus
+                on:buttonSelected="handleButton"
+            />
+            <Label :focus />`;
+            const expected = `sub init()
+\tm.button = CreateObject("roSGNode", "Button")
+\tm.button.id = "btn"
+\tm.button.text = "press"
+\tm.button.setFocus(true)
+\tm.top.appendChild(m.button)
+\tlabel = CreateObject("roSGNode", "Label")
+\tm.top.appendChild(label)
+end sub
+sub __set_initial_focus__()
+\tm.button.setFocus(true)
+end sub`;
+
+            const actual = Generator.generate(input);
+            expect(actual.brs).to.equal(expected);
+        });
     });
 
     it('handles nested node children', () => {

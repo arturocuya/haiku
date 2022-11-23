@@ -52,10 +52,13 @@ export class Generator {
         this.brsTranspileState = new BrsTranspileState(
             new BrsFile('', '', new BrsProgram({}))
         );
-        return {
-            xml: this.generateXml(),
-            brs: this.generateBrs()
-        };
+        this.publicFunctions = new Set<string>();
+
+        // brs must always be generated first
+        const brs = this.generateBrs();
+        const xml = this.generateXml(componentName);
+
+        return { xml: xml, brs: brs };
     }
 
     generateXml(componentName: string): string {
@@ -248,7 +251,22 @@ export class Generator {
         // Handle special attributes
         for (const sAttribute of specialAttributes) {
             if (sAttribute.name === ':focus' && !this.someNodeHasFocus) {
-                statements.push(`${identifier}.setFocus(true)`);
+                const setFocusSubIdentifier = '__set_initial_focus__';
+                if (identifier.startsWith('m.')) {
+                    callables.push(this.callable('sub', setFocusSubIdentifier, [`${identifier}.setFocus(true)`]));
+                } else if (nodeIdImage !== undefined) {
+                    callables.push(this.callable('sub', setFocusSubIdentifier, [
+                        `m.top.findNode(${nodeIdImage}).setFocus(true)`
+                    ]));
+                } else {
+                    statements.push(`${identifier}.id = "__initial_focus__"`);
+                    callables.push(this.callable('sub', setFocusSubIdentifier, [
+                        'node = m.top.findNode("__initial_focus__")',
+                        'node.id = invalid',
+                        'node.setFocus(true)'
+                    ]));
+                }
+                this.publicFunctions.add(setFocusSubIdentifier);
                 this.someNodeHasFocus = true;
             }
         }
