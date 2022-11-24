@@ -301,6 +301,7 @@ end sub`;
         <Label text="{a}{b}{c} letters" />
         <Label text="escaped \\{curlys\\} will not be detected {butThis} will" />
         <Label text="empty curlys {}are ignored{}{}{} {butThis} is not" />
+        <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code" />
         `;
 
         const expected = `sub init()
@@ -343,6 +344,14 @@ end sub`;
 \ttext4 += " is not"
 \tlabel6.text = text4
 \tm.top.appendChild(label6)
+\tlabel7 = CreateObject("roSGNode", "Label")
+\ttext5 = "Haiku has saved you "
+\ttext5 += m.count
+\ttext5 += " "
+\ttext5 += bslib_ternary(m.count = 1, "line", "lines")
+\ttext5 += " of code"
+\tlabel7.text = text5
+\tm.top.appendChild(label7)
 end sub`;
 
         const actual = Generator.generate(input);

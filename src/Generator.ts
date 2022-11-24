@@ -1,6 +1,7 @@
 import type {
     AssignmentStatement as BrsAssignmentStatement,
     DottedSetStatement as BrsDottedSetStatement,
+    Expression as BrsExpression,
     FunctionStatement as BrsFunctionStatement,
     Statement as BrsStatement
 } from 'brighterscript';
@@ -159,8 +160,23 @@ export class Generator {
                 .split(ExpressionInStringLiteralPattern).map(l => `"${l}"`)
                 .map(this.cleanCurlysFromStringLiteral);
 
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const expressions = expressionMatches.map(m => m[0]!).map(e => e.substring(1, e.length - 1));
+            const expressions = expressionMatches
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                .map(m => m[0]!)
+                .map(e => e.substring(1, e.length - 1))
+                .map(e => {
+                    // To parse expressions, let's pretend they are assignments (as they will be)
+                    // and then extract the right hand side of the assignment
+                    const fakeAssignmentStatement = `x = ${e}`;
+                    const parsedFakeAssignmentValue = (this.brsParse(fakeAssignmentStatement).rawStatements[0] as BrsAssignmentStatement)?.value;
+
+                    if (parsedFakeAssignmentValue) {
+                        return this.brsStatementToString(parsedFakeAssignmentValue);
+                    }
+
+                    return e;
+                });
+
             const assignments = alternateArrayValues(literals, expressions).filter(a => a !== '' && a !== '""');
 
             if (assignments.length > 1) {
@@ -317,7 +333,7 @@ export class Generator {
         };
     }
 
-    private brsStatementToString(statement: BrsStatement) {
+    private brsStatementToString(statement: BrsStatement | BrsExpression) {
         const transpiled = statement.transpile(this.brsTranspileState);
         return transpiled.map(t => t.toString()).join('');
     }
