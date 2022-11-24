@@ -171,10 +171,10 @@ export class Generator {
                     const parsedFakeAssignmentValue = (this.brsParse(fakeAssignmentStatement).rawStatements[0] as BrsAssignmentStatement)?.value;
 
                     if (parsedFakeAssignmentValue) {
-                        return this.brsStatementToString(parsedFakeAssignmentValue);
+                        return `bslib_toString(${this.brsStatementToString(parsedFakeAssignmentValue)})`;
                     }
 
-                    return e;
+                    return `bslib_toString(${e})`;
                 });
 
             const assignments = alternateArrayValues(literals, expressions).filter(a => a !== '' && a !== '""');

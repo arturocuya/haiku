@@ -310,45 +310,45 @@ end sub`;
 \tm.top.appendChild(label)
 \tlabel1 = CreateObject("roSGNode", "Label")
 \ttext = "Hello "
-\ttext += coolPlanet
+\ttext += bslib_toString(coolPlanet)
 \ttext += " that is not "
-\ttext += world
+\ttext += bslib_toString(world)
 \tlabel1.text = text
 \tm.top.appendChild(label1)
 \tlabel2 = CreateObject("roSGNode", "Label")
-\tlabel2.text = coolPlanet
+\tlabel2.text = bslib_toString(coolPlanet)
 \tm.top.appendChild(label2)
 \tlabel3 = CreateObject("roSGNode", "Label")
-\ttext1 = coolPlanet
+\ttext1 = bslib_toString(coolPlanet)
 \ttext1 += " "
-\ttext1 += world
+\ttext1 += bslib_toString(world)
 \ttext1 += " yeaa"
 \tlabel3.text = text1
 \tm.top.appendChild(label3)
 \tlabel4 = CreateObject("roSGNode", "Label")
-\ttext2 = a
-\ttext2 += b
-\ttext2 += c
+\ttext2 = bslib_toString(a)
+\ttext2 += bslib_toString(b)
+\ttext2 += bslib_toString(c)
 \ttext2 += " letters"
 \tlabel4.text = text2
 \tm.top.appendChild(label4)
 \tlabel5 = CreateObject("roSGNode", "Label")
 \ttext3 = "escaped {curlys} will not be detected "
-\ttext3 += butThis
+\ttext3 += bslib_toString(butThis)
 \ttext3 += " will"
 \tlabel5.text = text3
 \tm.top.appendChild(label5)
 \tlabel6 = CreateObject("roSGNode", "Label")
 \ttext4 = "empty curlys are ignored "
-\ttext4 += butThis
+\ttext4 += bslib_toString(butThis)
 \ttext4 += " is not"
 \tlabel6.text = text4
 \tm.top.appendChild(label6)
 \tlabel7 = CreateObject("roSGNode", "Label")
 \ttext5 = "Haiku has saved you "
-\ttext5 += m.count
+\ttext5 += bslib_toString(m.count)
 \ttext5 += " "
-\ttext5 += bslib_ternary(m.count = 1, "line", "lines")
+\ttext5 += bslib_toString(bslib_ternary(m.count = 1, "line", "lines"))
 \ttext5 += " of code"
 \tlabel7.text = text5
 \tm.top.appendChild(label7)
