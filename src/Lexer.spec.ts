@@ -197,4 +197,30 @@ describe('Lexer tests', () => {
         ];
         assertTokens(input, expectedTokens);
     });
+
+    it('scans string literals with expressions inside', () => {
+        const input = `<Button text="Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code" on:buttonSelected="increment"/>`;
+        const input2 = `
+            <Button
+                text="Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code"
+                on:buttonSelected="increment"
+            />`;
+
+        const expectedTokens = [
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.StringLiteral,
+            TokenType.SlashGreater
+        ];
+        let result = assertTokens(input, expectedTokens);
+        expect(result.tokens[4]?.image).to.equal('"Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code"');
+
+        result = assertTokens(input2, expectedTokens);
+        expect(result.tokens[4]?.image).to.equal('"Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code"');
+    });
 });
