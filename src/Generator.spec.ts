@@ -5,7 +5,7 @@ describe('Generator tests', () => {
     it('handles empty program', () => {
         const input = '';
         const actual = Generator.generate(input, 'TestComponent');
-        const expectedEmptyXml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component name=\"TestComponent\" extends=\"Group\">\n\t<script type=\"text/brightscript\" uri=\"TestComponent.brs\"/>\n</component>';
+        const expectedEmptyXml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component name=\"TestComponent\" extends=\"Group\">\n\t<script type=\"text/brightscript\" uri=\"TestComponent.brs\" />\n</component>';
         expect(actual).to.eql({ brs: '', xml: expectedEmptyXml });
     });
 
@@ -166,10 +166,10 @@ end sub`;
             `;
             const expected = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <component name=\"HaikuComponent\" extends=\"Group\">
-\t<script type=\"text/brightscript\" uri=\"HaikuComponent.brs\"/>
 \t<interface>
 \t\t<function name=\"__set_initial_focus__\" />
 \t</interface>
+\t<script type=\"text/brightscript\" uri=\"HaikuComponent.brs\" />
 </component>`;
 
             const actual = Generator.generate(input);

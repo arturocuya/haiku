@@ -40,6 +40,7 @@ export class Generator {
     scopes: Record<string, GeneratedScopeInfo>;
     brsTranspileState: BrsTranspileState;
     publicFunctions: Set<string>;
+    imports: Set<string>;
 
     static generate(program: string, componentName = 'HaikuComponent'): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
@@ -54,6 +55,8 @@ export class Generator {
             new BrsFile('', '', new BrsProgram({}))
         );
         this.publicFunctions = new Set<string>();
+        this.imports = new Set<string>();
+        this.imports.add(`${componentName}.brs`);
 
         // brs must always be generated first
         const brs = this.generateBrs();
@@ -68,9 +71,13 @@ export class Generator {
             ? `\n\t<interface>\n${publicFunctions.map(f => `\t\t<function name="${f}" />`).join('\n')}\n\t</interface>`
             : '';
 
+        const imports = Array.from(this.imports);
+        const scripts = imports.length > 0
+            ? imports.map(i => `\t<script type="text/brightscript" uri="${i}" />`).join('\n')
+            : '';
+
         return `<?xml version="1.0" encoding="UTF-8"?>
-<component name="${componentName}" extends="Group">
-\t<script type="text/brightscript" uri="${componentName}.brs"/>${_interface}\n</component>`;
+<component name="${componentName}" extends="Group">${_interface}\n${scripts}\n</component>`;
     }
 
     private addScope(scope: string) {
@@ -169,6 +176,8 @@ export class Generator {
                     // and then extract the right hand side of the assignment
                     const fakeAssignmentStatement = `x = ${e}`;
                     const parsedFakeAssignmentValue = (this.brsParse(fakeAssignmentStatement).rawStatements[0] as BrsAssignmentStatement)?.value;
+
+                    this.imports.add('pkg:/source/bslib.brs');
 
                     if (parsedFakeAssignmentValue) {
                         return `bslib_toString(${this.brsStatementToString(parsedFakeAssignmentValue)})`;
@@ -325,6 +334,10 @@ export class Generator {
 
         for (const identifier of brsParseResult.callableIdentifiers) {
             this.addIndentifierToScope(GeneratedScope.Init, identifier);
+        }
+
+        if (brsParseResult.rawStatements.join('\n').includes('bslib_')) {
+            this.imports.add('pkg:/source/bslib.brs');
         }
 
         return {
