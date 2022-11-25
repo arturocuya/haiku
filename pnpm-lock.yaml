@@ -2,12 +2,14 @@ lockfileVersion: 5.4
 
 specifiers:
   '@types/chai': ^4.3.3
+  '@types/chai-string': ^1.4.2
   '@types/mocha': ^10.0.0
   '@types/node': ^18.11.7
   '@typescript-eslint/eslint-plugin': ^5.41.0
   '@typescript-eslint/parser': ^5.41.0
   brighterscript: ^0.60.6
   chai: ^4.3.6
+  chai-string: ^1.5.0
   chevrotain: ^10.4.1
   cz-conventional-changelog: ^3.3.0
   eslint: ^8.26.0
@@ -27,11 +29,13 @@ dependencies:
 
 devDependencies:
   '@types/chai': 4.3.3
+  '@types/chai-string': 1.4.2
   '@types/mocha': 10.0.0
   '@types/node': 18.11.8
   '@typescript-eslint/eslint-plugin': 5.41.0_huremdigmcnkianavgfk3x6iou
   '@typescript-eslint/parser': 5.41.0_wyqvi574yv7oiwfeinomdzmc3m
   chai: 4.3.6
+  chai-string: 1.5.0_chai@4.3.6
   cz-conventional-changelog: 3.3.0
   eslint: 8.26.0
   eslint-plugin-github: 4.4.0_wyqvi574yv7oiwfeinomdzmc3m
@@ -487,6 +491,12 @@ packages:
 
   /@tsconfig/node16/1.0.3:
     resolution: {integrity: sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==}
+    dev: true
+
+  /@types/chai-string/1.4.2:
+    resolution: {integrity: sha512-ld/1hV5qcPRGuwlPdvRfvM3Ka/iofOk2pH4VkasK4b1JJP1LjNmWWn0LsISf6RRzyhVOvs93rb9tM09e+UuF8Q==}
+    dependencies:
+      '@types/chai': 4.3.3
     dev: true
 
   /@types/chai/4.3.3:
@@ -1000,6 +1010,14 @@ packages:
   /caseless/0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
     dev: false
+
+  /chai-string/1.5.0_chai@4.3.6:
+    resolution: {integrity: sha512-sydDC3S3pNAQMYwJrs6dQX0oBQ6KfIPuOZ78n7rocW0eJJlsHPh2t3kwW7xfwYA/1Bf6/arGtSUo16rxR2JFlw==}
+    peerDependencies:
+      chai: ^4.1.2
+    dependencies:
+      chai: 4.3.6
+    dev: true
 
   /chai/4.3.6:
     resolution: {integrity: sha512-bbcp3YfHCUzMOvKqsztczerVgBKSsEijCySNlHHbX3VG1nskvqjz5Rfso1gGwD6w6oOV3eI60pKuMOV5MV7p3Q==}

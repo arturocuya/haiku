@@ -1,5 +1,8 @@
 import { expect } from 'chai';
 import { Generator } from './Generator';
+import * as chai from 'chai';
+import * as chaiString from 'chai-string';
+chai.use(chaiString);
 
 describe('Generator tests', () => {
     it('handles empty program', () => {
@@ -385,5 +388,30 @@ end function`;
 
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
+    });
+});
+
+describe.skip('reactiveness', () => {
+    it('recognizes that a node should be in m scope', () => {
+        const input = `
+            <script>
+                m.message = "hi"
+                sub change()
+                    m.message = "bye"
+                end sub
+            </script>
+            <Label text={m.message} />
+            <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code" />
+        `;
+
+        const expected = `sub init()
+\tm.message = "hi"
+\tm.label = CreateObject("roSGNode", "Label")
+\tm.label.text = m.message
+\tm.top.appendChild(label)
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.startWith(expected);
     });
 });

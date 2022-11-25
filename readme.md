@@ -17,7 +17,7 @@ Spend time coding your intentions, not boilerplate 😌.
     m.index = 0
 </script>
 <Button
-    :focus="true"
+    :focus
     text={m.haiku[m.index]}
     on:buttonSelected={sub ()
         m.index = m.index < m.haiku.count() - 1 ? m.index + 1 : 0

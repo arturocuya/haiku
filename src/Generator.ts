@@ -1,15 +1,17 @@
-import type {
-    AssignmentStatement as BrsAssignmentStatement,
+import type { AssignmentStatement as BrsAssignmentStatement,
     DottedSetStatement as BrsDottedSetStatement,
+    DottedSetStatement,
     Expression as BrsExpression,
     FunctionStatement as BrsFunctionStatement,
-    Statement as BrsStatement
-} from 'brighterscript';
+    Statement as BrsStatement } from 'brighterscript';
+import brsUtil from 'brighterscript/dist/util';
 import {
     BrsFile,
     Lexer as BrsLexer,
     Parser as BrsParser,
-    Program as BrsProgram
+    Program as BrsProgram,
+    WalkMode,
+    createVisitor
 } from 'brighterscript';
 import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState';
 
@@ -34,6 +36,19 @@ interface GeneratorResult {
 const ExpressionInStringLiteralPattern = /(?<!\\)\{[^}]+(?<!\\)\}/;
 const ExpressionInStringLiteralPatternGlobal = /(?<!\\)\{([^}]+)(?<!\\)\}/g;
 
+interface DGNode {
+    identifier: string;
+    shouldBeScoped: boolean;
+    attributes: DGAttribute[];
+}
+
+interface DGAttribute {
+    name: string;
+    setStatements: string[];
+    scopedVariableNames: Set<string>;
+}
+
+
 export class Generator {
     ast: HaikuAst;
     someNodeHasFocus: boolean;
@@ -41,6 +56,7 @@ export class Generator {
     brsTranspileState: BrsTranspileState;
     publicFunctions: Set<string>;
     imports: Set<string>;
+    dependencyGraphs: DGNode[];
 
     static generate(program: string, componentName = 'HaikuComponent'): { xml: string; brs: string } {
         const ast = HaikuVisitor.programToAst(program);
@@ -56,6 +72,8 @@ export class Generator {
         );
         this.publicFunctions = new Set<string>();
         this.imports = new Set<string>();
+        this.dependencyGraphs = [];
+
         this.imports.add(`${componentName}.brs`);
 
         // brs must always be generated first
@@ -157,9 +175,12 @@ export class Generator {
         identifier: string,
         attributeName: string,
         stringLiteralImage: string
-    ): string[] {
+    ): { statements: string[]; rawExpressions: BrsExpression[] } {
         const statements: string[] = [];
-        const expressionMatches = Array.from(stringLiteralImage.matchAll(ExpressionInStringLiteralPatternGlobal));
+        const rawExpressions: BrsExpression[] = [];
+        const expressionMatches = Array.from(
+            stringLiteralImage.matchAll(ExpressionInStringLiteralPatternGlobal)
+        );
         if (expressionMatches.length > 0) {
             // Remove `"` from the start and end of the string
             const trimmedImage = stringLiteralImage.substring(1, stringLiteralImage.length - 1);
@@ -176,6 +197,8 @@ export class Generator {
                     // and then extract the right hand side of the assignment
                     const fakeAssignmentStatement = `x = ${e}`;
                     const parsedFakeAssignmentValue = (this.brsParse(fakeAssignmentStatement).rawStatements[0] as BrsAssignmentStatement)?.value;
+
+                    rawExpressions.push(parsedFakeAssignmentValue);
 
                     this.imports.add('pkg:/source/bslib.brs');
 
@@ -204,7 +227,7 @@ export class Generator {
                 `${identifier}.${attributeName} = ${this.cleanCurlysFromStringLiteral(stringLiteralImage)}`
             );
         }
-        return statements;
+        return { statements: statements, rawExpressions: rawExpressions };
     }
 
     private createObject(node: HaikuNodeAst, parentIdentifier: string): GeneratorResult {
@@ -220,25 +243,77 @@ export class Generator {
             `${identifier} = CreateObject("roSGNode", "${node.name}")`
         ];
 
+        const dgNode: DGNode = {
+            identifier: identifier,
+            attributes: [],
+            shouldBeScoped: false
+        };
+
         const callables: string[] = [];
 
         let nodeIdImage: string | undefined;
 
         // Handle regular attributes
         for (const attribute of attributes) {
+            const dgAttribute: DGAttribute = {
+                name: attribute.name,
+                setStatements: [],
+                scopedVariableNames: new Set<string>()
+            };
+
             if (attribute.value) {
                 if (attribute.value.type === TokenType.StringLiteral) {
                     if (attribute.name === 'id') {
                         nodeIdImage = attribute.value.image;
-                        statements.push(`${identifier}.${attribute.name} = ${attribute.value.image}`);
+                        const setStatement = `${identifier}.${attribute.name} = ${attribute.value.image}`;
+                        dgAttribute.setStatements.push(setStatement);
+                        statements.push(setStatement);
                     } else {
-                        statements.push(...this.handleStringLiteralAttribute(GeneratedScope.Init, identifier, attribute.name, attribute.value.image));
+                        const {
+                            statements: stringLiteralStatements,
+                            rawExpressions
+                        } = this.handleStringLiteralAttribute(
+                            GeneratedScope.Init, identifier, attribute.name, attribute.value.image
+                        );
+
+                        // get all expressions from the string literal
+                        // and walk them to check for m.variables
+                        for (const expression of rawExpressions) {
+                            expression.walk(createVisitor({
+                                DottedGetExpression: (expression) => {
+                                    const name = expression.name.text;
+                                    const dottedGetParts = brsUtil.getAllDottedGetParts(expression);
+                                    if (dottedGetParts?.[0]?.text === 'm') {
+                                        dgAttribute.scopedVariableNames.add(name);
+                                    }
+                                }
+                            }), { walkMode: WalkMode.visitExpressionsRecursive });
+                        }
+
+                        dgAttribute.setStatements.push(...stringLiteralStatements);
+                        statements.push(...stringLiteralStatements);
                     }
                 } else if (attribute.value.type === TokenType.DataBinding) {
                     const value = attribute.value.image.substring(1, attribute.value.image.length - 1);
-                    statements.push(`${identifier}.${attribute.name} = ${value}`);
+                    const statement = `${identifier}.${attribute.name} = ${value}`;
+                    const transpiledStatement = this.brsParse(statement).rawStatements[0] as DottedSetStatement;
+
+                    transpiledStatement.walk(createVisitor({
+                        DottedGetExpression: (expression) => {
+                            const name = expression.name.text;
+                            const dottedGetParts = brsUtil.getAllDottedGetParts(expression);
+                            if (dottedGetParts?.[0]?.text === 'm') {
+                                dgAttribute.scopedVariableNames.add(name);
+                            }
+                        }
+                    }), { walkMode: WalkMode.visitExpressionsRecursive });
+
+                    const setStatement = transpiledStatement ? this.brsStatementToString(transpiledStatement) : statement;
+                    dgAttribute.setStatements.push(setStatement);
+                    statements.push(setStatement);
                 }
             }
+            dgNode.attributes.push(dgAttribute);
         }
 
         // Handle observable attributes
