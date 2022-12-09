@@ -179,7 +179,7 @@ end sub`;
             expect(actual.xml).to.equal(expected);
         });
 
-        // TODO: this is will be supported when reactivity is implemented
+        // TODO: this is a nice to have
         it.skip('when node is kept in scope', () => {
             const input = `
             <Button
@@ -304,7 +304,7 @@ end sub`;
         <Label text="{a}{b}{c} letters" />
         <Label text="escaped \\{curlys\\} will not be detected {butThis} will" />
         <Label text="empty curlys {}are ignored{}{}{} {butThis} is not" />
-        <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code" />
+        <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} {m.count = 1 ? "line" : "lines"} of code" />
         `;
 
         const expected = `sub init()
@@ -352,6 +352,8 @@ end sub`;
 \ttext5 += bslib_toString(m.count)
 \ttext5 += " "
 \ttext5 += bslib_toString(bslib_ternary(m.count = 1, "line", "lines"))
+\ttext5 += " "
+\ttext5 += bslib_toString(bslib_ternary(m.count = 1, "line", "lines"))
 \ttext5 += " of code"
 \tlabel7.text = text5
 \tm.top.appendChild(label7)
@@ -391,7 +393,7 @@ end function`;
     });
 });
 
-describe.skip('reactiveness', () => {
+describe('reactiveness', () => {
     it('recognizes that a node should be in m scope', () => {
         const input = `
             <script>
@@ -405,13 +407,35 @@ describe.skip('reactiveness', () => {
         `;
 
         const expected = `sub init()
+\tm.__dirty__ = {}
 \tm.message = "hi"
 \tm.label = CreateObject("roSGNode", "Label")
 \tm.label.text = m.message
-\tm.top.appendChild(label)
+\tm.top.appendChild(m.label)
+\tlabel1 = CreateObject("roSGNode", "Label")
+\ttext = "Haiku has saved you "
+\ttext += bslib_toString(m.count)
+\ttext += " "
+\ttext += bslib_toString(bslib_ternary(m.count = 1, "line", "lines"))
+\ttext += " of code"
+\tlabel1.text = text
+\tm.top.appendChild(label1)
+end sub
+
+sub change()
+\tm.message = "bye"
+\tm.__dirty__["message"] = true
+\t__update__()
+end sub
+
+sub __update__()
+\tif m.__dirty__["message"] <> invalid
+\t\tm.label.text = m.message
+\t\tm.__dirty__.Delete("message")
+\tend if
 end sub`;
 
         const actual = Generator.generate(input);
-        expect(actual.brs).to.startWith(expected);
+        expect(actual.brs).to.equal(expected);
     });
 });

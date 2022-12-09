@@ -36,7 +36,7 @@ const NodeAttribute = createToken({
 
 const StringLiteral = createToken({
     name: TokenType.StringLiteral,
-    pattern: /"[^"]*(?:\{[^}]*\})+?[^"]*"|"[^"]*"/
+    pattern: /"([^"{]*(?:{[^{}]*}[^"{]*)*)"/
 });
 
 export const DataBindingPattern = /\{[^}]+\}/;

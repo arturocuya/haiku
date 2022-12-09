@@ -17,6 +17,7 @@ specifiers:
   eslint-plugin-no-only-tests: ^3.1.0
   mocha: ^10.1.0
   nyc: ^15.1.0
+  source-map: ^0.7.4
   ts-mocha: ^10.0.0
   ts-node: ^10.9.1
   typescript: ^4.8.4
@@ -25,6 +26,7 @@ specifiers:
 dependencies:
   brighterscript: 0.60.6
   chevrotain: 10.4.1
+  source-map: 0.7.4
   vscode-languageserver: 8.0.2
 
 devDependencies:

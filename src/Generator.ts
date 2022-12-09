@@ -1,9 +1,10 @@
 import type { AssignmentStatement as BrsAssignmentStatement,
+    AstNode,
     DottedSetStatement as BrsDottedSetStatement,
     DottedSetStatement,
     Expression as BrsExpression,
-    FunctionStatement as BrsFunctionStatement,
     Statement as BrsStatement } from 'brighterscript';
+import type { FunctionStatement as BrsFunctionStatement } from 'brighterscript';
 import brsUtil from 'brighterscript/dist/util';
 import {
     BrsFile,
@@ -18,6 +19,7 @@ import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState'
 import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
+import { RawCodeStatement } from './RawCodeStatement';
 
 enum GeneratedScope {
     File = 'File',
@@ -80,7 +82,9 @@ export class Generator {
         const brs = this.generateBrs();
         const xml = this.generateXml(componentName);
 
-        return { xml: xml, brs: brs };
+        const reactiveBrs = this.makeBrsReactive(brs);
+
+        return { xml: xml, brs: reactiveBrs };
     }
 
     generateXml(componentName: string): string {
@@ -316,6 +320,8 @@ export class Generator {
             dgNode.attributes.push(dgAttribute);
         }
 
+        this.dependencyGraphs.push(dgNode);
+
         // Handle observable attributes
         for (const observable of observableAttributes) {
             const observedField = observable.name.replace('on:', '');
@@ -427,7 +433,7 @@ export class Generator {
     }
 
     private brsParse(source: string):
-    GeneratorResult & { statementIdentifiers: Set<string>; callableIdentifiers: Set<string>; rawStatements: BrsStatement[] } {
+    GeneratorResult & { statementIdentifiers: Set<string>; callableIdentifiers: Set<string>; rawStatements: BrsStatement[]; ast: AstNode } {
         const statementIdentifiers = new Set<string>();
         const callableIdentifiers = new Set<string>();
 
@@ -475,8 +481,129 @@ export class Generator {
             callables: callables,
             statementIdentifiers: statementIdentifiers,
             callableIdentifiers: callableIdentifiers,
-            rawStatements: brsParser.statements
+            rawStatements: brsParser.statements,
+            ast: brsParser.ast
         };
+    }
+
+    private makeBrsReactive(brs: string): string {
+        // Get the list of unique scoped variables bounded to a node
+        let boundScopedVariables = this.dependencyGraphs.map(dg => {
+            return dg.attributes
+                .map(a => Array.from(a.scopedVariableNames))
+                .flat();
+        }).flat();
+        boundScopedVariables = Array.from(new Set(boundScopedVariables));
+
+        const reactiveBoundScopedVariables: string[] = [];
+
+        // Get all the parsed functions in the .brs except the init function
+        const brsParseResult = this.brsParse(brs);
+
+        const ast = brsParseResult.ast;
+        let needsDirty = false;
+
+        ast.walk(createVisitor({
+            // @ts-expect-error aaa
+            DottedSetStatement: (statement: BrsDottedSetStatement, parent, a, b) => {
+                let parentStatement = parent;
+                while (parentStatement) {
+                    if (parentStatement.name?.text === 'init') {
+                        return;
+                    }
+                    parentStatement = parentStatement.parent;
+                }
+
+                const identifier = statement.name.text;
+                if (boundScopedVariables.includes(identifier)) {
+                    needsDirty = true;
+                    reactiveBoundScopedVariables.push(identifier);
+                    return new RawCodeStatement(`${statement.transpile(this.brsTranspileState).join('')}\nm.__dirty__["${identifier}"] = true\n__update__()`);
+                }
+            }
+        }), { walkMode: WalkMode.visitAllRecursive });
+
+        if (needsDirty) {
+            ast.walk(createVisitor({
+                FunctionStatement: (statement: BrsFunctionStatement, parent, a, b) => {
+                    if (statement.name.text === 'init') {
+                        statement.func.body.statements.unshift(new RawCodeStatement('m.__dirty__ = {}'));
+                    }
+                }
+            }), { walkMode: WalkMode.visitStatements });
+        }
+
+        if (reactiveBoundScopedVariables.length === 0) {
+            return brs;
+        }
+
+        // In the dependency graph, mark nodes as scoped if their bounded
+        // variables are reactive. Otherwise, remove the variables.
+        // This will prepare the dependecy graph so that it can be used to build
+        // the __update__ callable.
+        for (const dg of this.dependencyGraphs) {
+            for (const attribute of dg.attributes) {
+                for (const scopedVariableName of attribute.scopedVariableNames) {
+                    if (reactiveBoundScopedVariables.includes(scopedVariableName)) {
+                        dg.shouldBeScoped = true;
+                    } else {
+                        attribute.scopedVariableNames.delete(scopedVariableName);
+                    }
+                }
+            }
+        }
+
+        const scopedVariables = this.dependencyGraphs.filter(dg => dg.shouldBeScoped).map(dg => dg.identifier);
+
+        const walkFunction = (statement: any) => {
+            if (scopedVariables.includes(statement.name.text)) {
+                statement.name.text = `m.${statement.name.text}`;
+            }
+            return statement;
+        };
+
+        ast.walk(createVisitor({
+            AssignmentStatement: walkFunction,
+            VariableExpression: walkFunction
+        }), { walkMode: WalkMode.visitAllRecursive });
+
+        const reactiveBrs = ast.transpile(this.brsTranspileState).join('').replaceAll('    ', '\t');
+
+        // Add the __update__ callable to the .brs file
+        const variableUpdateStatements: Record<string, string[]> = {};
+        const updateStatements = [];
+
+        for (const dg of this.dependencyGraphs.filter(dg => dg.shouldBeScoped)) {
+            for (const attribute of dg.attributes) {
+                for (const scopedVariableName of attribute.scopedVariableNames) {
+                    if (variableUpdateStatements[scopedVariableName] === undefined) {
+                        variableUpdateStatements[scopedVariableName] = attribute.setStatements;
+                    } else {
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        variableUpdateStatements[scopedVariableName] = variableUpdateStatements[scopedVariableName]!.concat(attribute.setStatements);
+                    }
+                }
+            }
+        }
+
+        for (const [scopedVariableName, statements] of Object.entries(variableUpdateStatements)) {
+            updateStatements.push(`if m.__dirty__["${scopedVariableName}"] <> invalid`);
+            updateStatements.push(...statements.map(s => {
+                let statementText = `\t${s.trim()}`;
+                for (const variable of scopedVariables) {
+                    if (statementText.includes(variable)) {
+                        statementText = statementText.replaceAll(variable, `m.${variable}`);
+                    }
+                }
+                return statementText;
+            }));
+            updateStatements.push(`\tm.__dirty__.Delete("${scopedVariableName}")`);
+            updateStatements.push('end if');
+        }
+
+        const updateCallable = this.callable('sub', '__update__', updateStatements);
+
+        return `${reactiveBrs}${updateStatements.length > 0 ? `\n\n${updateCallable}` : ''}`;
     }
 }
 

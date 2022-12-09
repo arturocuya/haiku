@@ -15,6 +15,9 @@ export class HaikuVisitor extends BaseVisitor {
         HaikuParser.input = tokens;
         const cst = HaikuParser.ProgramStatement();
         const visitor = new HaikuVisitor();
+        if (HaikuParser.errors.length > 0) {
+            console.log(HaikuParser.errors.map(e => e.message));
+        }
         return visitor.visit(cst);
     }
 
