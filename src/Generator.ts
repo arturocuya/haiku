@@ -1,5 +1,6 @@
 import type { AssignmentStatement as BrsAssignmentStatement,
     AstNode,
+    Body,
     DottedSetStatement as BrsDottedSetStatement,
     DottedSetStatement,
     Expression as BrsExpression,
@@ -19,7 +20,6 @@ import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState'
 import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
-import { RawCodeStatement } from './RawCodeStatement';
 
 enum GeneratedScope {
     File = 'File',
@@ -505,7 +505,7 @@ export class Generator {
 
         ast.walk(createVisitor({
             // @ts-expect-error aaa
-            DottedSetStatement: (statement: BrsDottedSetStatement, parent, a, b) => {
+            DottedSetStatement: (statement: BrsDottedSetStatement, parent, a, index) => {
                 let parentStatement = parent;
                 while (parentStatement) {
                     if (parentStatement.name?.text === 'init') {
@@ -518,7 +518,14 @@ export class Generator {
                 if (boundScopedVariables.includes(identifier)) {
                     needsDirty = true;
                     reactiveBoundScopedVariables.push(identifier);
-                    return new RawCodeStatement(`${statement.transpile(this.brsTranspileState).join('')}\nm.__dirty__["${identifier}"] = true\n__update__()`);
+
+                    if (parent.constructor.name === 'Block') {
+                        const newStatements = (this.brsParse(`m.__dirty__["${identifier}"] = true\n__update__()`).ast as Body).statements;
+                        parent.statements.splice(index + 1, 0, ...newStatements);
+                    } else {
+                        throw `Not function expression, instead ${parent.constructor.name}`;
+                    }
+
                 }
             }
         }), { walkMode: WalkMode.visitAllRecursive });
@@ -527,7 +534,8 @@ export class Generator {
             ast.walk(createVisitor({
                 FunctionStatement: (statement: BrsFunctionStatement, parent, a, b) => {
                     if (statement.name.text === 'init') {
-                        statement.func.body.statements.unshift(new RawCodeStatement('m.__dirty__ = {}'));
+                        const newStatements = (this.brsParse(`m.__dirty__ = {}`).ast as Body).statements;
+                        statement.func.body.statements.unshift(...newStatements);
                     }
                 }
             }), { walkMode: WalkMode.visitStatements });

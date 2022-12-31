@@ -391,6 +391,68 @@ end function`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
+
+    it.skip('edge case: complex bsc compilation', () => {
+        const input = `
+        <script>
+            m.haiku = [
+                "The west wind whispered",
+                "And touched the eyelids of spring:",
+                "Her eyes, Primroses."
+            ]
+            m.index = 0
+        </script>
+        <Button
+            :focus
+            text={m.haiku[m.index]}
+            on:buttonSelected={sub ()
+                m.index = m.index < m.haiku.count() - 1 ? m.index + 1 : 0
+            end sub}
+        />`;
+
+        const expected = `sub init()
+\tm.__dirty__ = {}
+\tm.haiku = [
+\t\t"The west wind whispered"
+\t\t"And touched the eyelids of spring:"
+\t\t"Her eyes, Primroses."
+\t]
+\tm.index = 0
+\tm.button = CreateObject("roSGNode", "Button")
+\tm.button.text = m.haiku[m.index]
+\tm.button.observeField("buttonSelected", "__handle_button_buttonSelected")
+\tm.button.id = "__initial_focus__"
+\tm.top.appendChild(m.button)
+end sub
+
+sub __handle_button_buttonSelected()
+\tm.index = (function(__bsCondition, m)
+\t\tif __bsCondition then
+\t\t\treturn m.index + 1
+\t\telse
+\t\t\treturn 0
+\t\tend if
+\tend function)(m.index < m.haiku.count() - 1, m)
+\tm.__dirty__["index"] = true
+\t__update__()
+end sub
+
+sub __set_initial_focus__()
+\tnode = m.top.findNode("__initial_focus__")
+\tnode.id = invalid
+\tnode.setFocus(true)
+end sub
+
+sub __update__()
+\tif m.__dirty__["index"] <> invalid
+\t\tm.button.text = m.haiku[m.index]
+\t\tm.__dirty__.Delete("index")
+\tend if
+end sub`;
+
+        const actual = Generator.generate(input);
+        expect(actual.brs).to.equal(expected);
+    });
 });
 
 describe('reactiveness', () => {
