@@ -392,7 +392,7 @@ end function`;
         expect(actual.brs).to.equal(expected);
     });
 
-    it.skip('edge case: complex bsc compilation', () => {
+    it('edge case: complex bsc compilation', () => {
         const input = `
         <script>
             m.haiku = [

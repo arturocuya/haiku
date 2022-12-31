@@ -20,6 +20,7 @@ import { BrsTranspileState } from 'brighterscript/dist/parser/BrsTranspileState'
 import { TokenType } from './TokenType';
 import type { HaikuAst, HaikuNodeAst } from './Visitor';
 import { HaikuVisitor } from './Visitor';
+import { SourceNode } from 'source-map';
 
 enum GeneratedScope {
     File = 'File',
@@ -575,7 +576,15 @@ export class Generator {
             VariableExpression: walkFunction
         }), { walkMode: WalkMode.visitAllRecursive });
 
-        const reactiveBrs = ast.transpile(this.brsTranspileState).join('').replaceAll('    ', '\t');
+        const recursiveStringify = (obj: string | SourceNode | Array<string|SourceNode>): string => {
+            if (Array.isArray(obj)) {
+                return obj.map(recursiveStringify).join('');
+            }
+
+            return obj.toString();
+        }
+
+        const reactiveBrs = ast.transpile(this.brsTranspileState).map(recursiveStringify).join('').replaceAll('    ', '\t');
 
         // Add the __update__ callable to the .brs file
         const variableUpdateStatements: Record<string, string[]> = {};
