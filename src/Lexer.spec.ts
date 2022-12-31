@@ -223,4 +223,19 @@ describe('Lexer tests', () => {
         result = assertTokens(input2, expectedTokens);
         expect(result.tokens[4]?.image).to.equal('"Haiku has saved you {m.count} {m.count === 1 ? "line" : "lines"} of code"');
     });
+
+    it('scans shorthand node attributes', () => {
+        const input = '<Label {text} binding={m.something} />';
+        const expectedTokens = [
+            TokenType.Less,
+            TokenType.NodeName,
+            TokenType.DataBinding,
+            TokenType.NodeAttribute,
+            TokenType.Equal,
+            TokenType.DataBinding,
+            TokenType.SlashGreater
+        ];
+        const result = assertTokens(input, expectedTokens);
+        expect(result.tokens[2]?.image).to.equal('{text}');
+    });
 });

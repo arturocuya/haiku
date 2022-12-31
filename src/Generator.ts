@@ -418,7 +418,7 @@ export class Generator {
             this.addIndentifierToScope(GeneratedScope.Init, identifier);
         }
 
-        if (brsParseResult.rawStatements.join('\n').includes('bslib_')) {
+        if (brsParseResult.ast.transpile(this.brsTranspileState).map(s => s.toString()).join('\n').includes('bslib_')) {
             this.imports.add('pkg:/source/bslib.brs');
         }
 

@@ -157,7 +157,7 @@ Let's implement the "Hello world" of reactive applications: A button that update
     end sub
 </script>
 <Button
-    :focus="true"
+    :focus
     text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code"
     on:buttonSelected="increment"
 />

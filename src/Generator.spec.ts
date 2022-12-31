@@ -453,22 +453,21 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.brs).to.equal(expected);
     });
-});
 
-describe('reactiveness', () => {
-    it('recognizes that a node should be in m scope', () => {
-        const input = `
-            <script>
-                m.message = "hi"
-                sub change()
-                    m.message = "bye"
-                end sub
-            </script>
-            <Label text={m.message} />
-            <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code" />
-        `;
-
-        const expected = `sub init()
+    describe('reactiveness', () => {
+        it('recognizes that a node should be in m scope', () => {
+            const input = `
+                <script>
+                    m.message = "hi"
+                    sub change()
+                        m.message = "bye"
+                    end sub
+                </script>
+                <Label text={m.message} />
+                <Label text="Haiku has saved you {m.count} {m.count = 1 ? "line" : "lines"} of code" />
+            `;
+    
+            const expected = `sub init()
 \tm.__dirty__ = {}
 \tm.message = "hi"
 \tm.label = CreateObject("roSGNode", "Label")
@@ -496,8 +495,42 @@ sub __update__()
 \t\tm.__dirty__.Delete("message")
 \tend if
 end sub`;
+    
+            const actual = Generator.generate(input);
+            expect(actual.brs).to.equal(expected);
+        });
+    });
+
+    describe('shorthand attributes', () => {
+        it('handles shorthand attributes', () => {
+            const input = `
+                <script>
+                    text = "world";
+                </script>
+                
+                <Label {text} />
+            `;
+            const expected = `sub init()
+\ttext = "world"
+\tlabel = CreateObject("roSGNode", "Label")
+\tlabel.text = text
+\tm.top.appendChild(label)
+end sub`;
+
+            const actual = Generator.generate(input);
+            expect(actual.brs).to.equal(expected);
+        });
+    })
+
+    it('includes bslib import when needed', () => {
+        const input = `
+            <script>
+                message = a ? b : c
+            </script>
+            <Label text={message} />
+        `;
 
         const actual = Generator.generate(input);
-        expect(actual.brs).to.equal(expected);
+        expect(actual.xml).to.include('bslib.brs');
     });
 });

@@ -22,7 +22,13 @@ export class HaikuParserCst extends CstParser {
         this.CONSUME(Tokens[TokenType.Less]);
         this.CONSUME1(Tokens[TokenType.NodeName]);
         this.MANY1(() => {
-            this.SUBRULE(this.NodeAttributeStatement);
+            this.OPTION(() => {
+                // TODO: This is to identify shorthand attribute values. Figure out a way to do this with another token.
+                this.CONSUME3(Tokens[TokenType.DataBinding]);
+            });
+            this.OPTION1(() => {
+                this.SUBRULE(this.NodeAttributeStatement);
+            });
         });
         this.OR([
             { ALT: () => this.CONSUME(Tokens[TokenType.SlashGreater]) },

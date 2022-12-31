@@ -9,6 +9,9 @@ function assertVisitor(input: string, expectedAst: any) {
     HaikuParser.input = tokens;
     const parser = HaikuParser;
     const cst = parser.ProgramStatement();
+    if (parser.errors.length > 0) {
+        console.log(parser.errors);
+    }
     expect(parser.errors).to.be.empty;
     const visitor = new HaikuVisitor();
     const ast = visitor.visit(cst);
@@ -117,6 +120,19 @@ describe('Visitor tests', () => {
             nodes: [{
                 name: 'Button',
                 attributes: [],
+                children: []
+            }]
+        });
+    });
+
+    it('parses node attribute shorthands', () => {
+        assertVisitor('<Label {text} />', {
+            script: '',
+            nodes: [{
+                name: 'Label',
+                attributes: [
+                    { name: 'text', value: { type: TokenType.DataBinding, image: '{text}' } }
+                ],
                 children: []
             }]
         });

@@ -29,9 +29,17 @@ export class HaikuVisitor extends BaseVisitor {
     }
 
     NodeStatement(ctx: any) {
+        const attributes = ctx.NodeAttributeStatement?.map((attribute: any) => this.visit(attribute)) ?? [];
+        const shorthandAttriubutes = ctx.DataBinding?.map((attribute: any) => ({
+            name: attribute.image.substring(1, attribute.image.length - 1),
+            value: {
+                type: TokenType.DataBinding,
+                image: attribute.image
+            }
+        })) ?? [];
         return {
             name: ctx[TokenType.NodeName][0].image,
-            attributes: ctx.NodeAttributeStatement?.map((attribute: any) => this.visit(attribute)) ?? [],
+            attributes: attributes.concat(...shorthandAttriubutes),
             children: ctx.NodeStatement?.map((node: any) => this.visit(node)) ?? []
         };
     }
