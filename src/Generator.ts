@@ -4,6 +4,8 @@ import type { AssignmentStatement as BrsAssignmentStatement,
     DottedSetStatement as BrsDottedSetStatement,
     DottedSetStatement,
     Expression as BrsExpression,
+    InterfaceFieldStatement,
+    InterfaceStatement,
     Statement as BrsStatement } from 'brighterscript';
 import type { FunctionStatement as BrsFunctionStatement } from 'brighterscript';
 import brsUtil from 'brighterscript/dist/util';
@@ -58,6 +60,7 @@ export class Generator {
     scopes: Record<string, GeneratedScopeInfo>;
     brsTranspileState: BrsTranspileState;
     publicFunctions: Set<string>;
+    publicFields: Record<string, string>;
     imports: Set<string>;
     dependencyGraphs: DGNode[];
 
@@ -74,6 +77,7 @@ export class Generator {
             new BrsFile('', '', new BrsProgram({}))
         );
         this.publicFunctions = new Set<string>();
+        this.publicFields = {};
         this.imports = new Set<string>();
         this.dependencyGraphs = [];
 
@@ -90,8 +94,8 @@ export class Generator {
 
     generateXml(componentName: string): string {
         const publicFunctions = Array.from(this.publicFunctions);
-        const _interface = publicFunctions.length > 0
-            ? `\n\t<interface>\n${publicFunctions.map(f => `\t\t<function name="${f}" />`).join('\n')}\n\t</interface>`
+        const _interface = publicFunctions.length > 0 || Object.keys(this.publicFields).length > 0
+            ? `\n\t<interface>\n${Object.entries(this.publicFields).map(([key, value]) => `\t\t<field id="${key}" type="${value}" />`).join('\n')}${publicFunctions.map(f => `\t\t<function name="${f}" />`).join('\n')}\n\t</interface>`
             : '';
 
         const imports = Array.from(this.imports);
@@ -417,6 +421,20 @@ export class Generator {
         for (const identifier of brsParseResult.callableIdentifiers) {
             this.addIndentifierToScope(GeneratedScope.Init, identifier);
         }
+
+        const publicFields: typeof this.publicFields = {}
+
+        brsParseResult.ast.walk(createVisitor({
+            InterfaceStatement(statement: InterfaceStatement) {
+                if (statement.name === 'Props') {
+                    for (const field of (statement.fields as InterfaceFieldStatement[])) {
+                        publicFields[field.name] = field.type.toTypeString();
+                    }
+                }
+            },
+        }), { walkMode: WalkMode.visitStatements });
+
+        this.publicFields = publicFields;
 
         if (brsParseResult.ast.transpile(this.brsTranspileState).map(s => s.toString()).join('\n').includes('bslib_')) {
             this.imports.add('pkg:/source/bslib.brs');

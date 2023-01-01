@@ -533,4 +533,26 @@ end sub`;
         const actual = Generator.generate(input);
         expect(actual.xml).to.include('bslib.brs');
     });
+
+    it('generates public fields based on `Props` interface', () => {
+        const input = `
+            <script>
+                interface Props
+                    message as string
+                end interface
+                a = "hello"
+            </script>
+        `;
+
+        const expected = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<component name=\"HaikuComponent\" extends=\"Group\">
+\t<interface>
+\t\t<field id=\"message\" type=\"string\" />
+\t</interface>
+\t<script type=\"text/brightscript\" uri=\"HaikuComponent.brs\" />
+</component>`;
+
+        const actual = Generator.generate(input);
+        expect(actual.xml).to.equal(expected);
+    });
 });

@@ -163,6 +163,8 @@ Let's implement the "Hello world" of reactive applications: A button that update
 />
 ```
 
+> Note that the reactive variable **must** be declared in the `m` scope.
+
 - When a node has the special `:focus` attribute set to true, the application will set its focus onto it after the parent component is mounted.
 
 - When an attribute starts with the `on:` directive, the compiler will create an observer for that attribute and will set the provided function as the observer handler.
@@ -216,6 +218,34 @@ You can also set the handler function in-line:
         count += 1
     end sub}
 />
+```
+
+## Public fields (Props)
+
+To declare public fields that can be accessed through the `m.top` scope, declare an `interface` called `Props` inside the script tag:
+
+```xml
+' HaikuComponent.haiku
+<script>
+    interface Props
+        name as string
+    end interface
+
+    m.top.name = "Vin"
+</script>
+<Label text="Hello {m.top.name}!" />
+```
+
+Based on this special `interface`, Haiku will add the fields to the final component's XML automagically.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="HaikuComponent" extends="Group">
+	<interface>
+		<field id="name" type="string" />
+	</interface>
+	<script type="text/brightscript" uri="HaikuComponent.brs" />
+</component>
 ```
 
 ## Using BrighterScript
